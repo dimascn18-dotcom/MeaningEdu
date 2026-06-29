@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeaningEdu — Belajar Bermakna, Untuk Semua</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1A3A2A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">MeaningEdu</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#fitur">Fitur</a></li>
+        <li><a href="#mli">Indeks MLI</a></li>
+        <li><a href="#alur">Cara Kerja</a></li>
+        <li><a href="#pengguna">Untuk Siapa</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="login.html" class="btn-ghost">Masuk</a>
+        <a href="register.html" class="btn-primary">Daftar Gratis</a>
+      </div>
+      <button class="hamburger" aria-label="Menu" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#fitur">Fitur</a>
+      <a href="#mli">Indeks MLI</a>
+      <a href="#alur">Cara Kerja</a>
+      <a href="#pengguna">Untuk Siapa</a>
+      <a href="login.html" class="btn-ghost">Masuk</a>
+      <a href="register.html" class="btn-primary">Daftar Gratis</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg-pattern"></div>
+    <div class="container">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Platform Inovasi Pendidikan Inklusif · Offline-First
+      </div>
+      <h1 class="hero-title">
+        Belajar yang <em>Bermakna</em><br>untuk Setiap Siswa Indonesia
+      </h1>
+      <p class="hero-sub">
+        MeaningEdu membantu guru dan siswa — termasuk di wilayah 3T — membangun pemahaman mendalam melalui refleksi, konteks lokal, dan AI yang membimbing, bukan menggantikan.
+      </p>
+      <div class="hero-actions">
+        <a href="register.html" class="btn-primary btn-lg">Mulai Sekarang — Gratis</a>
+        <a href="#alur" class="btn-outline btn-lg">Lihat Cara Kerjanya</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num">5</span>
+          <span class="stat-label">Dimensi Makna Belajar</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num">100%</span>
+          <span class="stat-label">Bisa Diakses Offline</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-num">3T</span>
+          <span class="stat-label">Dirancang untuk Wilayah Terpencil</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="dashboard-mockup">
+        <div class="mock-topbar">
+          <span class="mock-dot red"></span>
+          <span class="mock-dot yellow"></span>
+          <span class="mock-dot green"></span>
+          <span class="mock-title">Dasbor Guru · Kelas XI Fisika</span>
+        </div>
+        <div class="mock-content">
+          <div class="mock-mli-card">
+            <p class="mock-label">Meaningful Learning Index</p>
+            <p class="mock-score">74<span>/100</span></p>
+            <div class="mock-bars">
+              <div class="mock-bar-row"><span>Relevansi Kontekstual</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span>82</span></div>
+              <div class="mock-bar-row"><span>Otonomi Belajar</span><div class="bar-track"><div class="bar-fill" style="width:70%"></div></div><span>70</span></div>
+              <div class="mock-bar-row"><span>Persepsi Kompetensi</span><div class="bar-track"><div class="bar-fill warn" style="width:58%"></div></div><span>58</span></div>
+              <div class="mock-bar-row"><span>Keterlibatan Kognitif</span><div class="bar-track"><div class="bar-fill" style="width:79%"></div></div><span>79</span></div>
+              <div class="mock-bar-row"><span>Refleksi Metakognitif</span><div class="bar-track"><div class="bar-fill" style="width:65%"></div></div><span>65</span></div>
+            </div>
+          </div>
+          <div class="mock-ai-alert">
+            <span class="ai-icon">✦</span>
+            <p><strong>Rekomendasi AI:</strong> Dimensi Persepsi Kompetensi turun. Mulai kelas dengan demonstrasi visual dinamo sepeda sebelum masuk rumus Fluks Magnetik.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MASALAH / KONTEKS -->
+  <section class="problem-section">
+    <div class="container">
+      <div class="section-eyebrow">Mengapa MeaningEdu Dibutuhkan</div>
+      <h2 class="section-title">Krisis Makna Belajar di Era AI</h2>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="problem-icon">⚡</div>
+          <h3>Surface Learning</h3>
+          <p>AI memudahkan siswa menyalin jawaban tanpa berpikir. Hubungan dengan pengetahuan jadi transaksional dan dangkal.</p>
+        </div>
+        <div class="problem-card">
+          <div class="problem-icon">📊</div>
+          <h3>Motivasi Ekstrinsik</h3>
+          <p>Sistem nilai angka mematikan rasa ingin tahu. Siswa belajar untuk nilai, bukan untuk memahami dunia.</p>
+        </div>
+        <div class="problem-card">
+          <div class="problem-icon">🗺️</div>
+          <h3>Bias Perkotaan</h3>
+          <p>Platform EdTech dirancang untuk internet cepat dan contoh kota besar. Siswa 3T merasa asing dari materinya sendiri.</p>
+        </div>
+        <div class="problem-card">
+          <div class="problem-icon">👨‍🏫</div>
+          <h3>Guru Lintas Bidang</h3>
+          <p>Di daerah terpencil, guru sejarah harus mengajar Fisika. Tanpa dukungan, pembelajaran terjebak pada hafalan rumus.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FITUR UTAMA -->
+  <section class="features-section" id="fitur">
+    <div class="container">
+      <div class="section-eyebrow">Fitur Platform</div>
+      <h2 class="section-title">Satu Ekosistem, Dua Peran, Satu Tujuan</h2>
+
+      <div class="feature-tabs">
+        <button class="tab-btn active" onclick="switchTab('guru', this)">🧑‍🏫 Untuk Guru</button>
+        <button class="tab-btn" onclick="switchTab('siswa', this)">👩‍🎓 Untuk Siswa</button>
+      </div>
+
+      <div class="feature-panel active" id="tab-guru">
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon guru">📐</div>
+            <h3>Meaningful Activity Builder</h3>
+            <p>Buat aktivitas berbasis Inquiry & Project Learning dengan template pedagogis. AI membantu memvalidasi relevansi kontekstual draf Anda.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon guru">📈</div>
+            <h3>MLI Dashboard Visualizer</h3>
+            <p>Lihat grafik Meaningful Learning Index kelas secara real-time. Identifikasi siswa yang butuh perhatian khusus dengan cepat.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon guru">🤖</div>
+            <h3>AI Pedagogical Advisor</h3>
+            <p>Dapatkan 3 saran tindakan konkret mingguan berdasarkan data kelas. Bukan sekadar grafik — tapi langkah nyata untuk esok hari.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon guru">🌿</div>
+            <h3>AI Local Context Generator</h3>
+            <p>Masukkan wilayah sekolah Anda (misal: Pesisir/Pantai), AI langsung menyajikan ide proyek Fisika berbasis kearifan lokal setempat.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon guru">🧪</div>
+            <h3>AI Teaching Co-Pilot</h3>
+            <p>Panduan eksperimen Fisika menggunakan bahan di sekitar sekolah: botol bekas, bambu, batu. Khusus untuk guru non-linier.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon guru">📋</div>
+            <h3>Simple Class Manager</h3>
+            <p>Kelola kelas dan unggah materi dengan mudah. Setiap materi dilabeli topik dan dimensi MLI yang disasar.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-panel" id="tab-siswa">
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon siswa">🗺️</div>
+            <h3>Autonomous Learning Path</h3>
+            <p>Pilih 2–3 jalur aktivitas berbeda untuk topik yang sama. Kamu yang kendalikan cara belajarmu — bukan sistem.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon siswa">💬</div>
+            <h3>AI Reflection Companion</h3>
+            <p>Di akhir bab, AI mengajukan pertanyaan Socratic berdasarkan jawabanmu. Bukan menilai — tapi menggali lebih dalam.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon siswa">✨</div>
+            <h3>AI Simplifier Toggle</h3>
+            <p>Klik satu tombol, bahasa materi Fisika yang rumit langsung disederhanakan menjadi kalimat pendek dan mudah dipahami.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon siswa">♿</div>
+            <h3>Inclusivity Toolbar</h3>
+            <p>Pembaca suara (text-to-speech), font khusus disleksia OpenDyslexic, dan terjemahan otomatis tersedia untuk semua.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon siswa">📴</div>
+            <h3>Belajar Tanpa Internet</h3>
+            <p>Materi tetap terbuka walau sinyal hilang. Jurnal refleksimu tersimpan di gawai dan otomatis terkirim saat ada jaringan.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon siswa">📓</div>
+            <h3>Reflective Journal</h3>
+            <p>Tulis pengalaman belajarmu. Jurnal ini bukan tugas — tapi cermin untuk melihat seberapa jauh kamu sudah berkembang.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MLI SECTION -->
+  <section class="mli-section" id="mli">
+    <div class="container">
+      <div class="section-eyebrow">Apa itu MLI?</div>
+      <h2 class="section-title">Meaningful Learning Index</h2>
+      <p class="section-desc">Bukan rata-rata nilai ujian. MLI mengukur seberapa <em>bermakna</em> proses belajar yang dialami siswa — dari 5 dimensi berbeda.</p>
+      <div class="mli-grid">
+        <div class="mli-card">
+          <div class="mli-num">01</div>
+          <h3>Relevansi Kontekstual</h3>
+          <p>Apakah siswa bisa mengaitkan konsep Fisika dengan kehidupan nyata dan ekosistem lokal mereka?</p>
+          <div class="mli-ref">Ausubel (1968) · Mayer (2002)</div>
+        </div>
+        <div class="mli-card">
+          <div class="mli-num">02</div>
+          <h3>Otonomi Belajar</h3>
+          <p>Apakah siswa merasa punya kendali atas cara dan jalur belajar yang mereka pilih?</p>
+          <div class="mli-ref">Deci & Ryan (2000)</div>
+        </div>
+        <div class="mli-card">
+          <div class="mli-num">03</div>
+          <h3>Persepsi Kompetensi</h3>
+          <p>Apakah siswa yakin bisa memahami dan menyelesaikan tantangan yang diberikan?</p>
+          <div class="mli-ref">Bandura (1997)</div>
+        </div>
+        <div class="mli-card">
+          <div class="mli-num">04</div>
+          <h3>Keterlibatan Kognitif Mendalam</h3>
+          <p>Apakah siswa bertanya "mengapa?" dan tidak sekadar menyalin jawaban dari AI?</p>
+          <div class="mli-ref">Fredricks et al. (2004)</div>
+        </div>
+        <div class="mli-card">
+          <div class="mli-num">05</div>
+          <h3>Refleksi Metakognitif</h3>
+          <p>Apakah siswa sadar di bagian mana mereka masih bingung dan bagaimana cara memperbaikinya?</p>
+          <div class="mli-ref">Flavell (1979)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALUR PENGGUNAAN -->
+  <section class="flow-section" id="alur">
+    <div class="container">
+      <div class="section-eyebrow">Cara Kerja</div>
+      <h2 class="section-title">Siklus Belajar Bermakna</h2>
+      <p class="section-desc">Lima tahap yang terhubung — dari perancangan guru hingga intervensi pedagogis berbasis data nyata.</p>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-bubble">1</div>
+          <div class="step-line"></div>
+          <div class="step-content">
+            <span class="step-role guru-role">Guru</span>
+            <h3>Rancang Pembelajaran</h3>
+            <p>Guru membuat kelas dan aktivitas menggunakan Meaningful Activity Builder. AI Local Context Generator menyesuaikan proyek dengan kearifan lokal daerah sekolah.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-bubble">2</div>
+          <div class="step-line"></div>
+          <div class="step-content">
+            <span class="step-role siswa-role">Siswa</span>
+            <h3>Akses & Belajar (Offline/Online)</h3>
+            <p>Siswa memilih jalur belajar sendiri. PWA memastikan materi tetap bisa diakses meski tanpa internet. Jurnal refleksi tersimpan lokal di gawai.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-bubble">3</div>
+          <div class="step-line"></div>
+          <div class="step-content">
+            <span class="step-role siswa-role">Siswa + AI</span>
+            <h3>Refleksi Terpandu</h3>
+            <p>Di akhir bab, AI Reflection Companion mengajukan pertanyaan Socratic — bukan menilai, tapi mengajak siswa berpikir lebih dalam tentang apa yang sudah dipelajari.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-bubble">4</div>
+          <div class="step-line"></div>
+          <div class="step-content">
+            <span class="step-role ai-role">Sistem AI</span>
+            <h3>Analisis & Kalkulasi MLI</h3>
+            <p>Saat gawai mendapat sinyal, data jurnal otomatis dikirim ke server. NLP Engine menganalisis teks refleksi dan menghitung skor 5 dimensi MLI.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-bubble">5</div>
+          <div class="step-content">
+            <span class="step-role guru-role">Guru</span>
+            <h3>Intervensi Pedagogis</h3>
+            <p>Guru membuka MLI Dashboard sebelum kelas berikutnya. AI Pedagogical Advisor memberikan 3 saran konkret berdasarkan data minggu lalu — bukan asumsi.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UNTUK SIAPA -->
+  <section class="audience-section" id="pengguna">
+    <div class="container">
+      <div class="section-eyebrow">Target Pengguna</div>
+      <h2 class="section-title">Dibangun untuk Mereka yang Terlupakan Teknologi</h2>
+      <div class="audience-grid">
+        <div class="audience-card">
+          <div class="audience-avatar">👩‍🏫</div>
+          <h3>Guru Wilayah 3T</h3>
+          <p>Guru yang mengajar lintas bidang dengan fasilitas terbatas. MeaningEdu hadir sebagai AI Co-Pilot yang mendampingi, bukan menghakimi.</p>
+          <ul class="audience-list">
+            <li>Panduan eksperimen dari bahan alam</li>
+            <li>Saran pedagogis berbasis data riil</li>
+            <li>Tidak perlu keahlian teknologi tinggi</li>
+          </ul>
+        </div>
+        <div class="audience-card featured">
+          <div class="featured-badge">Fokus Utama</div>
+          <div class="audience-avatar">👨‍🎓</div>
+          <h3>Siswa Marjinal & Inklusif</h3>
+          <p>Gen-Z/Alpha yang merasa asing dari materi sekolah. Siswa dengan disleksia atau hambatan belajar. Mereka berhak mendapat ruang belajar yang aman.</p>
+          <ul class="audience-list">
+            <li>Antarmuka ramah disleksia</li>
+            <li>Bebas memilih jalur belajar sendiri</li>
+            <li>Belajar tanpa cemas dihakimi nilai</li>
+          </ul>
+        </div>
+        <div class="audience-card">
+          <div class="audience-avatar">🏫</div>
+          <h3>Sekolah & Institusi</h3>
+          <p>Sekolah yang ingin mengukur kualitas belajar secara holistik — melampaui angka rapor — dan membangun budaya refleksi.</p>
+          <ul class="audience-list">
+            <li>Laporan MLI per kelas</li>
+            <li>Arsitektur offline-first</li>
+            <li>Kompatibel kurikulum nasional</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-box">
+        <div class="cta-glow"></div>
+        <p class="cta-eyebrow">Bergabunglah Sekarang</p>
+        <h2>Mulai Perjalanan Belajar yang Bermakna</h2>
+        <p class="cta-desc">Gratis untuk guru dan siswa. Tidak memerlukan kartu kredit. Bisa langsung digunakan dari browser.</p>
+        <div class="cta-actions">
+          <a href="register.html" class="btn-primary btn-lg">Daftar sebagai Guru</a>
+          <a href="register.html" class="btn-outline-light btn-lg">Daftar sebagai Siswa</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#" class="logo">
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">MeaningEdu</span>
+          </a>
+          <p>Ekosistem pemutus rantai ketimpangan pendidikan berbasis AI. Offline-first, inklusif, dan kontekstual.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Platform</h4>
+            <a href="#">Fitur Guru</a>
+            <a href="#">Fitur Siswa</a>
+            <a href="#">MLI Dashboard</a>
+            <a href="#">Offline Mode</a>
+          </div>
+          <div class="footer-col">
+            <h4>Tentang</h4>
+            <a href="#">Visi & Misi</a>
+            <a href="#">Referensi Ilmiah</a>
+            <a href="#">Kontak</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 MeaningEdu. Dibangun untuk Indonesia yang lebih merata.</p>
+        <p>Berbasis: Ausubel · Deci & Ryan · Flavell · Bandura · Laurillard</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

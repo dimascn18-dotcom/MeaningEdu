@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masuk — MeaningEdu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 24px 60px;
+      background: linear-gradient(160deg, #E8F2EC 0%, var(--cream) 100%);
+    }
+    .auth-card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 12px 50px rgba(26,58,42,0.12);
+      border: 1px solid rgba(26,58,42,0.08);
+    }
+    .auth-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 1.2rem; color: var(--forest);
+      margin-bottom: 28px;
+    }
+    .auth-logo .logo-icon { font-size: 1.4rem; color: var(--gold); }
+    .auth-card h1 { font-family: var(--font-display); font-size: 1.7rem; color: var(--forest); margin-bottom: 6px; }
+    .auth-card > p { color: var(--text-lt); font-size: 0.92rem; margin-bottom: 32px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--forest); margin-bottom: 7px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid var(--cream-dk);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.95rem; color: var(--text);
+      background: var(--cream);
+      transition: border-color var(--trans), box-shadow var(--trans);
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--forest-md);
+      box-shadow: 0 0 0 3px rgba(26,58,42,0.08);
+      background: var(--white);
+    }
+    .form-group input::placeholder { color: var(--text-lt); }
+    .role-tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+    .role-tab {
+      flex: 1; padding: 10px; text-align: center;
+      border: 2px solid var(--cream-dk);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem; font-weight: 600; color: var(--text-md);
+      cursor: pointer; transition: all var(--trans);
+      background: none;
+      font-family: var(--font-body);
+    }
+    .role-tab:hover { border-color: var(--forest); color: var(--forest); }
+    .role-tab.active { background: var(--forest); border-color: var(--forest); color: var(--white); }
+    .forgot { text-align: right; }
+    .forgot a { font-size: 0.82rem; color: var(--forest-md); font-weight: 600; }
+    .forgot a:hover { text-decoration: underline; }
+    .auth-submit {
+      width: 100%; padding: 14px;
+      background: var(--forest); color: var(--white);
+      border: none; border-radius: 50px;
+      font-family: var(--font-body);
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background var(--trans), transform var(--trans);
+      margin-top: 8px;
+    }
+    .auth-submit:hover { background: var(--forest-md); transform: translateY(-2px); }
+    .auth-footer { text-align: center; margin-top: 24px; font-size: 0.88rem; color: var(--text-lt); }
+    .auth-footer a { color: var(--forest-md); font-weight: 600; }
+    .auth-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">MeaningEdu</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-icon">◈</span>
+        MeaningEdu
+      </div>
+      <h1>Selamat Datang</h1>
+      <p>Masuk untuk melanjutkan perjalanan belajar bermakna Anda.</p>
+
+      <div class="role-tabs">
+        <button class="role-tab active" onclick="setRole('guru', this)">🧑‍🏫 Guru</button>
+        <button class="role-tab" onclick="setRole('siswa', this)">👩‍🎓 Siswa</button>
+      </div>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="nama@sekolah.sch.id" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Kata Sandi</label>
+          <input type="password" id="password" placeholder="Masukkan kata sandi" required />
+          <div class="forgot" style="margin-top:6px">
+            <a href="#">Lupa kata sandi?</a>
+          </div>
+        </div>
+        <button type="submit" class="auth-submit">Masuk</button>
+      </form>
+
+      <div class="auth-footer">
+        Belum punya akun? <a href="register.html">Daftar gratis</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setRole(role, btn) {
+      document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    function handleLogin(e) {
+      e.preventDefault();
+      alert('🚧 Halaman ini adalah demo. Backend akan disambungkan pada tahap berikutnya!');
+    }
+    // Navbar scroll
+    const navbar = document.querySelector('.navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 20);
+    });
+  </script>
+</body>
+</html>
