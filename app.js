@@ -1,4 +1,6 @@
 // MeaningEdu — app.js
+// URL Backend (Ganti dengan URL Railway saat deploy nanti)
+const API_BASE_URL = 'http://localhost:5001';
 
 // --- Navbar scroll effect ---
 const navbar = document.querySelector('.navbar');

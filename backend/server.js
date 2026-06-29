@@ -4,11 +4,34 @@ require('dotenv').config();
 
 // Inisialisasi Express
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors()); // Agar frontend bisa memanggil API tanpa diblokir
 app.use(express.json()); // Agar server bisa membaca format JSON
+// --- Rute API ---
+const authRoutes = require('./routes/authRoutes');
+const kelasRoutes = require('./routes/kelasRoutes'); // <== Tambahkan ini
+const aktivitasRoutes = require('./routes/aktivitasRoutes');
+const jurnalRoutes = require('./routes/jurnalRoutes');
+const mliRoutes = require('./routes/mliRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+
+app.use('/auth', authRoutes);
+app.use('/kelas', kelasRoutes); // <== Tambahkan ini
+app.use('/aktivitas', aktivitasRoutes); // <== Tambahkan ini
+app.use('/jurnal', jurnalRoutes); // <== Tambahkan ini
+app.use('/mli', mliRoutes); // <== Tambahkan ini
+app.use('/ai', aiRoutes); // <== Tambahkan ini
+// ----------------
+
+app.get('/', (req, res) => {
+  res.json({ message: "API MeaningEdu berjalan dengan baik! 🚀" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server Backend berjalan pada port ${PORT}`);
+});
 
 // --- TAMBAHKAN BARIS INI ---
 const authRoutes = require('./routes/authRoutes');
