@@ -79,6 +79,21 @@
     .mli-summary .score { font-family: var(--font-display); font-size:2.6rem; color:var(--forest); font-weight:600; }
     .mli-summary .score-label { font-size:0.82rem; color:var(--text-lt); }
 
+    /* ===== Tren Mingguan (Gap #3) ===== */
+    .tren-panel { margin-bottom:20px; }
+    .tren-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+    .tren-head h3 { margin-bottom:0; }
+    .tren-rentang-select { padding:6px 10px; border:2px solid var(--cream-dk); border-radius:50px; font-family:var(--font-body); font-size:0.8rem; color:var(--text-md); background:var(--white); cursor:pointer; }
+    .tren-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:0.76rem; color:var(--text-md); }
+    .tren-legend-item { display:flex; align-items:center; gap:6px; }
+    .tren-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .tren-svg-wrap { width:100%; overflow-x:auto; }
+    .tren-empty { text-align:center; padding:30px 20px; color:var(--text-lt); font-size:0.88rem; }
+    .perhatian-list { margin-top:16px; }
+    .perhatian-item { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:var(--radius-sm); background:var(--cream); margin-bottom:6px; font-size:0.85rem; }
+    .perhatian-item .nama { font-weight:600; color:var(--forest); }
+    .perhatian-item .skor { font-weight:700; padding:2px 10px; border-radius:50px; background:#FBE3DA; color:#B14A1E; font-size:0.8rem; }
+
     .ai-alert { display:none; gap:12px; background:var(--white); border-left:4px solid var(--gold); border-radius:8px; padding:14px 18px; margin-bottom:22px; box-shadow:var(--shadow); white-space:pre-wrap; }
     .ai-alert strong { color:var(--forest); display:block; font-size:0.82rem; margin-bottom:2px; }
     .ai-alert p { font-size:0.9rem; color:var(--text-md); line-height:1.6; }
@@ -181,6 +196,18 @@
 
             <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
           </div>
+        </div>
+
+        <div class="panel tren-panel">
+          <div class="tren-head">
+            <h3>📈 Tren MLI Mingguan Kelas</h3>
+            <select class="tren-rentang-select" id="trenRentang">
+              <option value="4">4 minggu terakhir</option>
+              <option value="8" selected>8 minggu terakhir</option>
+              <option value="12">12 minggu terakhir</option>
+            </select>
+          </div>
+          <div id="trenArea"><div class="loading-state"><span class="ic">⏳</span>Memuat tren...</div></div>
         </div>
 
         <div class="panel">
@@ -534,8 +561,97 @@
         }
       }
 
+      // ================= TREN MLI MINGGUAN (Gap #3) =================
+      const DIMENSI_TREN = [
+        { key: 'relevansi_kontekstual', label: 'Relevansi', color: '#7AAE8A' },
+        { key: 'otonomi', label: 'Otonomi', color: '#C8A84B' },
+        { key: 'persepsi_kompetensi', label: 'Kompetensi', color: '#2D5C42' },
+        { key: 'keterlibatan_kognitif', label: 'Keterlibatan', color: '#4A8A63' },
+        { key: 'refleksi_metakognitif', label: 'Refleksi', color: '#E07A3A' },
+      ];
+
+      function formatTanggalMinggu(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+      }
+
+      function renderTrenChart(trenRows) {
+        const W = 640, H = 220, padL = 32, padR = 16, padT = 16, padB = 28;
+        const innerW = W - padL - padR, innerH = H - padT - padB;
+        const n = trenRows.length;
+
+        const xFor = (i) => n <= 1 ? padL + innerW / 2 : padL + (i / (n - 1)) * innerW;
+        const yFor = (v) => padT + innerH - (Math.max(0, Math.min(100, v)) / 100) * innerH;
+
+        let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
+
+        // Garis grid horizontal (0/25/50/75/100)
+        [0, 25, 50, 75, 100].forEach((v) => {
+          const y = yFor(v);
+          svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#EDE6D8" stroke-width="1"/>`;
+          svg += `<text x="4" y="${y + 4}" font-size="9" fill="#7A7A7A">${v}</text>`;
+        });
+
+        // Satu polyline per dimensi
+        DIMENSI_TREN.forEach((dim) => {
+          const points = trenRows.map((row, i) => `${xFor(i)},${yFor(Number(row[dim.key]) || 0)}`).join(' ');
+          svg += `<polyline points="${points}" fill="none" stroke="${dim.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+          trenRows.forEach((row, i) => {
+            svg += `<circle cx="${xFor(i)}" cy="${yFor(Number(row[dim.key]) || 0)}" r="3" fill="${dim.color}"><title>${dim.label} — ${row[dim.key]}</title></circle>`;
+          });
+        });
+
+        // Label sumbu-x (tanggal per minggu)
+        trenRows.forEach((row, i) => {
+          svg += `<text x="${xFor(i)}" y="${H - 8}" font-size="9" fill="#7A7A7A" text-anchor="middle">${formatTanggalMinggu(row.minggu)}</text>`;
+        });
+
+        svg += `</svg>`;
+        return svg;
+      }
+
+      async function muatTren(kelasId) {
+        const area = document.getElementById('trenArea');
+        area.innerHTML = '<div class="loading-state"><span class="ic">⏳</span>Memuat tren...</div>';
+        const minggu = document.getElementById('trenRentang').value;
+        try {
+          const res = await fetchWithAuth(`/mli/tren/${kelasId}?minggu=${minggu}`);
+          const data = await res.json();
+          if (!res.ok) {
+            area.innerHTML = `<div class="tren-empty"><span class="ic">⚠️</span>${data.message || 'Gagal memuat tren.'}</div>`;
+            return;
+          }
+          if (!data.tren_mingguan || data.tren_mingguan.length === 0) {
+            area.innerHTML = '<div class="tren-empty"><span class="ic">📭</span>Belum cukup data jurnal untuk menampilkan tren pada kelas ini.</div>';
+            return;
+          }
+
+          let legend = '<div class="tren-legend">' + DIMENSI_TREN.map(d =>
+            `<div class="tren-legend-item"><span class="tren-legend-dot" style="background:${d.color}"></span>${d.label}</div>`
+          ).join('') + '</div>';
+
+          let perhatianHtml = '';
+          if (data.siswa_perlu_perhatian && data.siswa_perlu_perhatian.length > 0) {
+            perhatianHtml = '<div class="perhatian-list"><strong style="font-size:0.8rem; color:var(--forest);">⚠️ Siswa Perlu Perhatian (rata-rata terendah periode ini)</strong>' +
+              data.siswa_perlu_perhatian.map(s =>
+                `<div class="perhatian-item"><span class="nama">${s.nama_siswa}</span><span class="skor">${s.skor_rata_rata}</span></div>`
+              ).join('') + '</div>';
+          }
+
+          area.innerHTML = `<div class="tren-svg-wrap">${renderTrenChart(data.tren_mingguan)}</div>${legend}${perhatianHtml}`;
+        } catch (err) {
+          console.error(err);
+          area.innerHTML = '<div class="tren-empty"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';
+        }
+      }
+
+      document.getElementById('trenRentang').addEventListener('change', () => {
+        if (kelasAktifId) muatTren(kelasAktifId);
+      });
+
       async function muatAktivitas(kelasId) {
         kelasAktifId = kelasId;
+        muatTren(kelasId);
         document.getElementById('toggleBuilder').style.display = 'inline-flex';
 
         const wrap = document.getElementById('daftarAktivitas');
