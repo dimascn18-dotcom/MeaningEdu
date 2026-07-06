@@ -156,8 +156,16 @@
               <option value="Eksperimen Mandiri">Eksperimen Mandiri</option>
             </select>
 
-            <label>Deskripsi Aktivitas</label>
-            <textarea id="bDeskripsi" rows="3" placeholder="Jelaskan aktivitas belajarnya..."></textarea>
+            <label>Jalur 1 — Materi Teks</label>
+            <textarea id="bJalurTeks" rows="3" placeholder="Jelaskan materi/aktivitas dalam bentuk teks..."></textarea>
+
+            <label>Jalur 2 — Video Simulasi</label>
+            <textarea id="bJalurVideo" rows="3" placeholder="Deskripsi atau link video simulasi..."></textarea>
+
+            <label>Jalur 3 — Eksperimen Mandiri (opsional)</label>
+            <textarea id="bJalurEksperimen" rows="3" placeholder="Instruksi eksperimen sederhana (bisa diisi otomatis lewat AI Teaching Co-Pilot di bawah)..."></textarea>
+
+            <p style="font-size:0.78rem;color:var(--text-lt);margin:-4px 0 12px;">* Minimal 2 dari 3 jalur wajib diisi, agar siswa punya pilihan (mendukung dimensi Otonomi Belajar).</p>
 
             <label>Pertanyaan Pemantik</label>
             <textarea id="bPertanyaan" rows="2" placeholder="Pertanyaan pemicu rasa ingin tahu siswa..."></textarea>
@@ -263,7 +271,7 @@
           });
           const data = await res.json();
           if (res.ok) {
-            document.getElementById('bDeskripsi').value = data.deskripsi;
+           document.getElementById('bJalurTeks').value = data.deskripsi;
             document.getElementById('bPertanyaan').value = data.pertanyaan_pemantik;
           } else {
             alert('Gagal: ' + data.message);
@@ -279,7 +287,7 @@
       // Validasi AI — saran relevansi kontekstual draf aktivitas
       document.getElementById('btnValidasiAI').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
-        const deskripsi = document.getElementById('bDeskripsi').value.trim();
+        const deskripsi = document.getElementById('bJalurTeks').value.trim();
         const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
         if (!judul && !deskripsi) { alert('Isi draf aktivitas terlebih dahulu sebelum divalidasi.'); return; }
 
@@ -318,8 +326,9 @@
           });
           const data = await res.json();
           if (res.ok) {
-            document.getElementById('teksCopilot').textContent = data.panduan;
+           document.getElementById('teksCopilot').textContent = data.panduan;
             document.getElementById('boxCopilot').style.display = 'flex';
+            document.getElementById('bJalurEksperimen').value = data.panduan;
           } else {
             alert('Gagal: ' + data.message);
           }
@@ -335,23 +344,37 @@
       document.getElementById('btnPublishAktivitas').addEventListener('click', async () => {
         if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
         const judul = document.getElementById('bJudul').value.trim();
-        const deskripsi = document.getElementById('bDeskripsi').value.trim();
         const template_pedagogis = document.getElementById('bTemplate').value;
         const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
         if (!judul) { alert('Judul aktivitas wajib diisi.'); return; }
+
+        // Kumpulkan jalur belajar yang diisi (minimal 2 dari 3)
+        const calonJalur = [
+          { tipe_jalur: 'teks', label: '📖 Materi Teks', konten: document.getElementById('bJalurTeks').value.trim() },
+          { tipe_jalur: 'video', label: '🎥 Video Simulasi', konten: document.getElementById('bJalurVideo').value.trim() },
+          { tipe_jalur: 'eksperimen', label: '🧪 Eksperimen Mandiri', konten: document.getElementById('bJalurEksperimen').value.trim() }
+        ];
+        const jalur = calonJalur.filter(j => j.konten.length > 0);
+        if (jalur.length < 2) {
+          alert('Isi minimal 2 dari 3 jalur belajar (Teks/Video/Eksperimen) agar siswa punya pilihan otonomi.');
+          return;
+        }
+        const deskripsi = jalur.find(j => j.tipe_jalur === 'teks')?.konten || jalur[0].konten;
 
         const btn = document.getElementById('btnPublishAktivitas');
         btn.disabled = true; btn.textContent = 'Menerbitkan...';
         try {
           const res = await fetchWithAuth(`/aktivitas/${kelasAktifId}`, {
             method: 'POST',
-            body: JSON.stringify({ judul, deskripsi, template_pedagogis, pertanyaan_pemantik })
+            body: JSON.stringify({ judul, deskripsi, template_pedagogis, pertanyaan_pemantik, jalur })
           });
           const data = await res.json();
           if (res.ok) {
             alert('Aktivitas bermakna berhasil dirancang!');
             document.getElementById('bJudul').value = '';
-            document.getElementById('bDeskripsi').value = '';
+            document.getElementById('bJalurTeks').value = '';
+            document.getElementById('bJalurVideo').value = '';
+            document.getElementById('bJalurEksperimen').value = '';
             document.getElementById('bPertanyaan').value = '';
             document.getElementById('boxValidasi').style.display = 'none';
             document.getElementById('boxCopilot').style.display = 'none';

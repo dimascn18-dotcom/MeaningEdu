@@ -197,10 +197,8 @@
         <span class="materi-badge" id="materiTemplate">Template</span>
       </div>
 
-      <div class="jalur-tabs">
-        <button class="jalur-tab active" data-jalur="lengkap">📖 Materi Lengkap</button>
-        <button class="jalur-tab" data-jalur="ringkas">⚡ Ringkasan Cepat</button>
-        <button class="jalur-tab" data-jalur="tantangan">🧪 Tantangan Eksperimen</button>
+      <div class="jalur-tabs" id="jalurTabsContainer">
+        <!-- Tab jalur belajar diisi otomatis lewat JS berdasarkan data dari server -->
       </div>
 
       <div class="materi-tools">
@@ -261,9 +259,8 @@
       document.getElementById('sapaanNama').textContent = `Halo, ${user.nama.split(' ')[0]}! 👋`;
     }
 
-    let aktivitasTerpilih = null; // { id, judul, deskripsi, template_pedagogis, pertanyaan_pemantik }
+    let aktivitasTerpilih = null; // { id, judul, deskripsi, template_pedagogis, pertanyaan_pemantik, jalur }
     let waktuMulaiBelajar = null;
-    let jalurAktif = 'lengkap';
     let teksAsliMateri = '';
     let simplifierAktif = false;
 
@@ -391,48 +388,54 @@
     function pilihAktivitas(akt) {
       aktivitasTerpilih = akt;
       waktuMulaiBelajar = Date.now();
-      jalurAktif = 'lengkap';
       simplifierAktif = false;
 
       document.getElementById('materiPanel').style.display = 'block';
       document.getElementById('materiJudul').textContent = akt.judul;
       document.getElementById('materiTemplate').textContent = akt.template_pedagogis || 'Aktivitas';
-      document.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
-      document.querySelector('.jalur-tab[data-jalur="lengkap"]').classList.add('active');
       document.getElementById('btnSimplifier').classList.remove('active');
       document.getElementById('btnSimplifier').textContent = '✨ AI Simplifier: sederhanakan bahasa';
 
-      renderJalur('lengkap');
+      renderJalurTabs(akt);
       bukaJurnal(akt);
     }
 
-    function teksUntukJalur(jalur) {
-      if (!aktivitasTerpilih) return '';
-      if (jalur === 'ringkas') {
-        // Otonomi: siswa memilih versi ringkas dari deskripsi yang sama
-        return (aktivitasTerpilih.deskripsi || 'Belum ada deskripsi materi.').split('\n').slice(0, 2).join('\n');
+    function renderJalurTabs(akt) {
+      const container = document.getElementById('jalurTabsContainer');
+      container.innerHTML = '';
+      const daftarJalur = akt.jalur || [];
+      if (daftarJalur.length === 0) {
+        container.innerHTML = '<span class="empty-hint">Guru belum menambahkan jalur belajar untuk aktivitas ini.</span>';
+        document.getElementById('materiContent').textContent = akt.deskripsi || 'Belum ada materi.';
+        return;
       }
-      if (jalur === 'tantangan') {
-        return aktivitasTerpilih.pertanyaan_pemantik || 'Belum ada tantangan/pertanyaan pemantik untuk aktivitas ini.';
-      }
-      return aktivitasTerpilih.deskripsi || 'Belum ada deskripsi materi.';
+      daftarJalur.forEach((j, i) => {
+        const tab = document.createElement('button');
+        tab.className = 'jalur-tab' + (i === 0 ? ' active' : '');
+        tab.textContent = j.label;
+        tab.addEventListener('click', () => {
+          container.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          pilihJalur(j);
+        });
+        container.appendChild(tab);
+      });
+      // Tampilkan jalur pertama sebagai default + catat sebagai pilihan awal
+      pilihJalur(daftarJalur[0]);
     }
 
-    function renderJalur(jalur) {
-      jalurAktif = jalur;
-      teksAsliMateri = teksUntukJalur(jalur);
+    function pilihJalur(jalurObj) {
+      teksAsliMateri = jalurObj.konten || '';
       simplifierAktif = false;
       document.getElementById('btnSimplifier').classList.remove('active');
       document.getElementById('materiContent').textContent = teksAsliMateri;
-    }
 
-    document.querySelectorAll('.jalur-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        renderJalur(tab.dataset.jalur);
-      });
-    });
+      // Catat pilihan jalur ke server — dasar data Otonomi & Keterlibatan MLI
+      fetchWithAuth(`/aktivitas/${aktivitasTerpilih.id}/pilih-jalur`, {
+        method: 'POST',
+        body: JSON.stringify({ jalur_id: jalurObj.id })
+      }).catch(err => console.warn('Gagal mencatat pilihan jalur (materi tetap bisa dibaca):', err));
+    }
 
     // ================= 4. AI SIMPLIFIER TOGGLE =================
     document.getElementById('btnSimplifier').addEventListener('click', async () => {
