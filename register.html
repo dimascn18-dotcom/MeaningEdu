@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daftar — MeaningEdu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 100px 24px 60px;
+      background: linear-gradient(160deg, #E8F2EC 0%, var(--cream) 100%);
+    }
+    .auth-card {
+      background: var(--white); border-radius: 20px;
+      padding: 48px 40px; width: 100%; max-width: 480px;
+      box-shadow: 0 12px 50px rgba(26,58,42,0.12);
+      border: 1px solid rgba(26,58,42,0.08);
+    }
+    .auth-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.2rem; color: var(--forest); margin-bottom: 28px; }
+    .auth-logo .logo-icon { font-size: 1.4rem; color: var(--gold); }
+    .auth-card h1 { font-family: var(--font-display); font-size: 1.7rem; color: var(--forest); margin-bottom: 6px; }
+    .auth-card > p { color: var(--text-lt); font-size: 0.92rem; margin-bottom: 32px; }
+    .role-tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+    .role-tab {
+      flex: 1; padding: 10px; text-align: center;
+      border: 2px solid var(--cream-dk); border-radius: var(--radius-sm);
+      font-size: 0.85rem; font-weight: 600; color: var(--text-md);
+      cursor: pointer; transition: all var(--trans); background: none;
+      font-family: var(--font-body);
+    }
+    .role-tab:hover { border-color: var(--forest); color: var(--forest); }
+    .role-tab.active { background: var(--forest); border-color: var(--forest); color: var(--white); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--forest); margin-bottom: 7px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px;
+      border: 2px solid var(--cream-dk); border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 0.95rem; color: var(--text);
+      background: var(--cream); transition: border-color var(--trans), box-shadow var(--trans);
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--forest-md);
+      box-shadow: 0 0 0 3px rgba(26,58,42,0.08);
+      background: var(--white);
+    }
+    .form-group input::placeholder { color: var(--text-lt); }
+    .auth-submit {
+      width: 100%; padding: 14px;
+      background: var(--forest); color: var(--white);
+      border: none; border-radius: 50px;
+      font-family: var(--font-body); font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background var(--trans), transform var(--trans);
+      margin-top: 8px;
+    }
+    .auth-submit:hover { background: var(--forest-md); transform: translateY(-2px); }
+    .terms-note { font-size: 0.78rem; color: var(--text-lt); text-align: center; margin-top: 14px; line-height: 1.5; }
+    .auth-footer { text-align: center; margin-top: 24px; font-size: 0.88rem; color: var(--text-lt); }
+    .auth-footer a { color: var(--forest-md); font-weight: 600; }
+    .auth-footer a:hover { text-decoration: underline; }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">MeaningEdu</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-icon">◈</span>
+        MeaningEdu
+      </div>
+      <h1>Buat Akun Baru</h1>
+      <p>Gratis selamanya. Tidak perlu kartu kredit.</p>
+
+      <div class="role-tabs">
+        <button type="button" class="role-tab active" onclick="setRole('guru', this)">🧑‍🏫 Saya Guru</button>
+        <button type="button" class="role-tab" onclick="setRole('siswa', this)">👩‍🎓 Saya Siswa</button>
+      </div>
+      <form id="registerForm">
+        <input type="hidden" id="peran" value="guru" />
+        <div class="form-row">
+          <div class="form-group">
+          <label for="nama">Nama Lengkap</label>
+          <input type="text" id="nama" placeholder="Budi Santoso" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="nama@sekolah.sch.id" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="school">Nama Sekolah</label>
+          <input type="text" id="school" placeholder="SMA Negeri 1 ..." required />
+        </div>
+        
+        <div class="form-group">
+          <label for="region">Wilayah Sekolah</label>
+          <select id="wilayah" required>
+            <option value="">-- Pilih Wilayah --</option>
+            <option value="Perkotaan / Peri-urban">Perkotaan / Peri-urban</option>
+            <option value="Pedesaan">Pedesaan</option>
+            <option value="Pesisir / Pantai">Pesisir / Pantai</option>
+            <option value="Dataran Tinggi / Pegunungan">Dataran Tinggi / Pegunungan</option>
+            <option value="Wilayah 3T">Wilayah 3T (Tertinggal, Terdepan, Terluar)</option>
+            <option value="Kepulauan">Kepulauan</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Kata Sandi</label>
+          <input type="password" id="password" placeholder="Minimal 8 karakter" required />
+        </div>
+        <button type="submit" class="auth-submit">Buat Akun — Gratis</button>
+        <p class="terms-note">Dengan mendaftar, Anda menyetujui Kebijakan Privasi MeaningEdu. Data Anda tidak akan dijual atau dibagikan ke pihak ketiga.</p>
+      </form>
+
+      <div class="auth-footer">
+        Sudah punya akun? <a href="login.html">Masuk di sini</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setRole(role, btn) {
+      // Ubah tampilan tombol
+      document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Simpan nilai peran ke hidden input
+      document.getElementById('peran').value = role; 
+    }
+
+  </script>
+  
+  <script src="app.js"></script>
+</body>
+</html>

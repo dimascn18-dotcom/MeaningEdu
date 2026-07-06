@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruang Belajarku — MeaningEdu</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1A3A2A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Font ramah disleksia (opsional, dimuat dari CDN publik) */
+    @font-face {
+      font-family: 'OpenDyslexic';
+      src: url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic/compiled/OpenDyslexic-Regular.otf') format('opentype');
+      font-display: swap;
+    }
+    body.mode-disleksia, body.mode-disleksia * { font-family: 'OpenDyslexic', var(--font-body) !important; }
+
+    .ws-shell { max-width: 980px; margin: 0 auto; padding: 40px 24px 100px; }
+
+    /* Greeting header */
+    .ws-greeting { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:20px; }
+    .ws-greeting h1 { font-family: var(--font-display); font-size:1.8rem; color:var(--forest); }
+    .ws-greeting p { color:var(--text-lt); font-size:0.92rem; margin-top:4px; }
+    .ws-streak { display:flex; align-items:center; gap:8px; background:var(--white); border:1px solid rgba(26,58,42,0.08); border-radius:50px; padding:8px 18px; box-shadow:var(--shadow); font-weight:600; color:var(--forest); font-size:0.88rem; }
+
+    /* Toolbar Inklusivitas */
+    .incl-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+    .incl-btn {
+      display:flex; align-items:center; gap:6px;
+      background:var(--white); border:2px solid var(--cream-dk); border-radius:50px;
+      padding:8px 16px; font-size:0.82rem; font-weight:600; color:var(--text-md);
+      cursor:pointer; transition:var(--trans); font-family:var(--font-body);
+    }
+    .incl-btn:hover { border-color:var(--forest); color:var(--forest); }
+    .incl-btn.active { background:var(--forest); border-color:var(--forest); color:var(--white); }
+
+    /* Progress toward 5 MLI dimensions */
+    .ws-dims { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:28px; }
+    .ws-dim { background:var(--white); border-radius:var(--radius); padding:16px; text-align:center; box-shadow:var(--shadow); border:1px solid rgba(26,58,42,0.06); }
+    .ws-dim .icon { font-size:1.3rem; margin-bottom:6px; }
+    .ws-dim .label { font-size:0.74rem; color:var(--text-lt); font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+
+    /* Panel umum */
+    .panel { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid rgba(26,58,42,0.07); padding:22px; margin-bottom:22px; }
+    .panel h3 { font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--forest); margin-bottom:14px; }
+
+    /* Kode kelas */
+    .kelas-form { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .kelas-form input {
+      flex:1; min-width:180px; padding:11px 16px; border:2px solid var(--cream-dk); border-radius:var(--radius-sm);
+      font-family:var(--font-body); font-size:0.9rem; background:var(--cream); outline:none;
+    }
+    .kelas-form input:focus { border-color:var(--forest-md); background:var(--white); }
+    .kelas-form button {
+      padding:11px 22px; background:var(--forest); color:var(--white); border:none; border-radius:50px;
+      font-weight:600; font-size:0.88rem; cursor:pointer; font-family:var(--font-body); transition:var(--trans);
+    }
+    .kelas-form button:hover { background:var(--forest-md); }
+    .kelas-active-badge { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .kelas-active-badge span.k-nama { font-weight:700; color:var(--forest); }
+    .ganti-kelas-link { font-size:0.8rem; color:var(--text-lt); font-weight:600; cursor:pointer; }
+    .ganti-kelas-link:hover { color:var(--forest); text-decoration:underline; }
+
+    /* Aktivitas chips */
+    .aktivitas-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .aktivitas-chip { padding:9px 18px; border-radius:50px; border:2px solid var(--cream-dk); background:var(--white); font-size:0.85rem; font-weight:600; color:var(--text-md); cursor:pointer; transition:var(--trans); font-family:var(--font-body); }
+    .aktivitas-chip:hover { border-color:var(--forest); color:var(--forest); }
+    .aktivitas-chip.active { background:var(--forest); border-color:var(--forest); color:var(--white); }
+
+    /* Jalur belajar otonom (Autonomous Learning Path) */
+    .jalur-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .jalur-tab {
+      padding:9px 16px; border-radius:var(--radius-sm); border:2px solid var(--cream-dk); background:var(--cream);
+      font-size:0.82rem; font-weight:700; color:var(--text-md); cursor:pointer; transition:var(--trans); font-family:var(--font-body);
+      display:flex; align-items:center; gap:6px;
+    }
+    .jalur-tab:hover { border-color:var(--sage); }
+    .jalur-tab.active { background:var(--forest); border-color:var(--forest); color:var(--white); }
+
+    .materi-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px; }
+    .materi-head h4 { font-family: var(--font-display); font-size:1.15rem; color:var(--forest); }
+    .materi-badge { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; background:rgba(200,168,75,0.18); color:#8C6820; padding:4px 10px; border-radius:50px; }
+    .materi-tools { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .materi-tool-btn {
+      display:flex; align-items:center; gap:6px; background:var(--cream); border:2px solid var(--cream-dk); border-radius:50px;
+      padding:7px 14px; font-size:0.78rem; font-weight:600; color:var(--text-md); cursor:pointer; transition:var(--trans); font-family:var(--font-body);
+    }
+    .materi-tool-btn:hover { border-color:var(--forest); color:var(--forest); }
+    .materi-tool-btn.active { background:var(--sage); border-color:var(--sage); color:var(--white); }
+    #materiContent { font-size:1rem; line-height:1.75; color:var(--text); white-space:pre-wrap; }
+    #materiContent.font-lg { font-size:1.15rem; }
+    #materiContent.font-xl { font-size:1.3rem; }
+    .materi-loading { color:var(--text-lt); font-size:0.9rem; }
+
+    /* Journal card = the "meaningful learning storage" */
+    .journal-card { background:var(--white); border-radius:20px; padding:36px; box-shadow:var(--shadow-md); border:1px solid rgba(26,58,42,0.08); position:relative; overflow:hidden; }
+    .journal-card::before { content:"◈"; position:absolute; top:-10px; right:10px; font-size:7rem; color:var(--sage-lt); opacity:0.25; }
+    .journal-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; position:relative; z-index:1; }
+    .journal-head .badge-icon { width:40px; height:40px; border-radius:12px; background:var(--forest); color:var(--gold-lt); display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+    .journal-head h3 { font-family: var(--font-display); font-size:1.35rem; color:var(--forest); }
+    .journal-sub { color:var(--text-lt); font-size:0.9rem; margin-bottom:26px; position:relative; z-index:1; }
+
+    .step-track { display:flex; align-items:center; gap:8px; margin-bottom:28px; }
+    .step-dot { width:26px; height:26px; border-radius:50%; background:var(--cream-dk); color:var(--text-lt); font-size:0.75rem; font-weight:700; display:flex; align-items:center; justify-content:center; transition:var(--trans); }
+    .step-dot.active { background:var(--forest); color:var(--white); }
+    .step-line { flex:1; height:2px; background:var(--cream-dk); }
+
+    label.q-label { display:block; font-size:0.95rem; font-weight:600; color:var(--forest); margin-bottom:10px; line-height:1.5; }
+    textarea { width:100%; padding:14px 16px; border:2px solid var(--cream-dk); border-radius:var(--radius-sm); font-family:var(--font-body); font-size:0.95rem; color:var(--text); background:var(--cream); resize:vertical; outline:none; transition:border-color var(--trans); }
+    textarea:focus { border-color:var(--forest-md); background:var(--white); }
+
+    .ai-bubble { background:linear-gradient(160deg,#E8F2EC,var(--cream)); border:1px solid var(--sage-lt); border-radius:16px; padding:18px 20px; margin:22px 0; display:flex; gap:12px; align-items:flex-start; }
+    .ai-bubble .avatar { font-size:1.4rem; flex-shrink:0; }
+    .ai-bubble strong { color:var(--forest); display:block; font-size:0.82rem; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.03em; }
+    .ai-bubble p { color:var(--text); font-size:0.98rem; line-height:1.6; }
+
+    #btnKirimAwal, #btnSimpanJurnal {
+      margin-top:20px; padding:13px 28px; background:var(--forest); color:var(--white);
+      border:none; border-radius:50px; font-family:var(--font-body); font-size:0.95rem;
+      font-weight:600; cursor:pointer; transition:background var(--trans), transform var(--trans);
+    }
+    #btnKirimAwal:hover, #btnSimpanJurnal:hover { background:var(--forest-md); transform:translateY(-2px); }
+    #btnKirimAwal:disabled, #btnSimpanJurnal:disabled { opacity:0.7; cursor:wait; transform:none; }
+
+    .exit-link { font-size:0.85rem; color:var(--text-lt); font-weight:600; }
+    .exit-link:hover { color:var(--forest); text-decoration:underline; }
+
+    .empty-hint { color:var(--text-lt); font-size:0.88rem; padding:8px 0; }
+    .locked-notice { background:var(--cream); border:1px dashed var(--cream-dk); border-radius:var(--radius-sm); padding:16px; text-align:center; color:var(--text-lt); font-size:0.88rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar scrolled">
+    <div class="nav-inner">
+      <a href="workspace-siswa.html" class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">MeaningEdu</span>
+      </a>
+      <a href="index.html" class="exit-link" onclick="localStorage.removeItem('token'); localStorage.removeItem('user');">Keluar</a>
+    </div>
+  </nav>
+
+  <main class="ws-shell">
+    <div class="ws-greeting">
+      <div>
+        <h1 id="sapaanNama">Halo! 👋</h1>
+        <p>Yuk lanjutkan perjalanan belajar bermaknamu hari ini.</p>
+      </div>
+      <div class="ws-streak">🔥 <span id="streakCount">Mulai hari ini</span></div>
+    </div>
+
+    <!-- INCLUSIVITY TOOLBAR -->
+    <div class="incl-toolbar">
+      <button class="incl-btn" id="btnTTS" title="Dengarkan materi yang sedang dibuka">🔊 Dengarkan Materi</button>
+      <button class="incl-btn" id="btnDisleksia" title="Ganti font agar lebih mudah dibaca">🔤 Font Disleksia</button>
+      <button class="incl-btn" id="btnFontKecil">A-</button>
+      <button class="incl-btn" id="btnFontBesar">A+</button>
+    </div>
+
+    <div class="ws-dims">
+      <div class="ws-dim"><div class="icon">🧭</div><div class="label">Relevansi</div></div>
+      <div class="ws-dim"><div class="icon">🕊️</div><div class="label">Otonomi</div></div>
+      <div class="ws-dim"><div class="icon">💪</div><div class="label">Kompetensi</div></div>
+      <div class="ws-dim"><div class="icon">💬</div><div class="label">Keterlibatan</div></div>
+      <div class="ws-dim"><div class="icon">🪞</div><div class="label">Refleksi</div></div>
+    </div>
+
+    <!-- PANEL KELAS -->
+    <div class="panel" id="kelasPanel">
+      <h3>Kelas Saya</h3>
+      <div id="kelasContent">
+        <div class="kelas-form">
+          <input type="text" id="inputKodeKelas" placeholder="Masukkan Kode Kelas dari gurumu (mis: 1)" />
+          <button id="btnJoinKelas">Gabung Kelas</button>
+        </div>
+        <p class="empty-hint">Kode Kelas didapat dari gurumu. Ini menghubungkanmu ke daftar aktivitas belajar kelas tersebut.</p>
+      </div>
+    </div>
+
+    <!-- PANEL AKTIVITAS (Autonomous Learning Path dimulai di sini) -->
+    <div class="panel" id="aktivitasPanel" style="display:none;">
+      <h3>Pilih Aktivitas Belajar</h3>
+      <div class="aktivitas-row" id="daftarAktivitas">
+        <div class="empty-hint">Memuat aktivitas...</div>
+      </div>
+    </div>
+
+    <!-- PANEL MATERI + JALUR BELAJAR OTONOM + SIMPLIFIER -->
+    <div class="panel" id="materiPanel" style="display:none;">
+      <div class="materi-head">
+        <h4 id="materiJudul">Judul Aktivitas</h4>
+        <span class="materi-badge" id="materiTemplate">Template</span>
+      </div>
+
+      <div class="jalur-tabs">
+        <button class="jalur-tab active" data-jalur="lengkap">📖 Materi Lengkap</button>
+        <button class="jalur-tab" data-jalur="ringkas">⚡ Ringkasan Cepat</button>
+        <button class="jalur-tab" data-jalur="tantangan">🧪 Tantangan Eksperimen</button>
+      </div>
+
+      <div class="materi-tools">
+        <button class="materi-tool-btn" id="btnSimplifier">✨ AI Simplifier: sederhanakan bahasa</button>
+      </div>
+
+      <div id="materiContent">Pilih aktivitas di atas untuk mulai belajar.</div>
+    </div>
+
+    <!-- JURNAL REFLEKSI -->
+    <div id="reflection-box" class="journal-card">
+      <div class="journal-head">
+        <div class="badge-icon">📓</div>
+        <h3>Jurnal Refleksi Metakognitif</h3>
+      </div>
+      <p class="journal-sub">Ruang ini menyimpan proses berpikirmu — bukan sekadar jawaban benar/salah, tapi bagaimana pemahamanmu berkembang.</p>
+
+      <div id="jurnalLocked" class="locked-notice">
+        Pilih dan pelajari sebuah aktivitas terlebih dahulu untuk membuka jurnal refleksi.
+      </div>
+
+      <div id="jurnalUnlocked" style="display:none;">
+        <div class="step-track">
+          <div class="step-dot active" id="stepDot1">1</div>
+          <div class="step-line"></div>
+          <div class="step-dot" id="stepDot2">2</div>
+        </div>
+
+        <div id="tahap-1">
+          <label class="q-label" id="labelJawabanAwal">Apa yang kamu pahami tentang konsep hari ini?</label>
+          <textarea id="jawabanAwal" rows="3" placeholder="Tuliskan pemahamanmu dengan kata-katamu sendiri..."></textarea>
+          <button id="btnKirimAwal">Kirim ke AI Companion</button>
+        </div>
+
+        <div id="tahap-2" style="display: none; margin-top: 10px;">
+          <div class="ai-bubble">
+            <span class="avatar">🤖</span>
+            <div>
+              <strong>AI Companion</strong>
+              <p id="teksPertanyaanAI">Menunggu respons AI...</p>
+            </div>
+          </div>
+
+          <label class="q-label">Refleksi Lanjutanmu:</label>
+          <textarea id="jawabanLanjutan" rows="3" placeholder="Hubungkan dengan pertanyaan AI di atas..."></textarea>
+          <button id="btnSimpanJurnal">Simpan Jurnal Akhir</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+  (function () {
+    // ================= STATE & SAPAAN =================
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user && user.nama) {
+      document.getElementById('sapaanNama').textContent = `Halo, ${user.nama.split(' ')[0]}! 👋`;
+    }
+
+    let aktivitasTerpilih = null; // { id, judul, deskripsi, template_pedagogis, pertanyaan_pemantik }
+    let waktuMulaiBelajar = null;
+    let jalurAktif = 'lengkap';
+    let teksAsliMateri = '';
+    let simplifierAktif = false;
+
+    // ================= 1. PANEL KELAS =================
+    // Sekarang bersumber dari server (tabel kelas_siswa via /kelas/gabung & /kelas/siswa),
+    // bukan lagi localStorage mentah. localStorage hanya menyimpan *pilihan kelas aktif*
+    // (kelasIdAktifSiswa) untuk kenyamanan UI kalau siswa join lebih dari satu kelas.
+    let daftarKelasSiswa = [];
+
+    function renderKelasPanel(kelasAktif) {
+      const lainnya = daftarKelasSiswa.filter(k => k.id !== kelasAktif.id);
+      const listLain = lainnya.length
+        ? `<p class="empty-hint">Kelas lain: ${lainnya.map(k => `<span class="ganti-kelas-link" data-id="${k.id}">${k.nama_kelas}</span>`).join(' &middot; ')}</p>`
+        : '';
+      document.getElementById('kelasContent').innerHTML = `
+        <div class="kelas-active-badge">
+          <span class="k-nama">📚 ${kelasAktif.nama_kelas} aktif</span>
+          <span class="ganti-kelas-link" id="tambahKelasLink">+ Gabung kelas lain</span>
+        </div>
+        ${listLain}`;
+      document.getElementById('tambahKelasLink').addEventListener('click', renderJoinForm);
+      document.querySelectorAll('#kelasContent .ganti-kelas-link[data-id]').forEach(el => {
+        el.addEventListener('click', () => setKelasAktif(el.dataset.id));
+      });
+    }
+
+    function renderJoinForm() {
+      document.getElementById('kelasContent').innerHTML = `
+        <div class="kelas-form">
+          <input type="text" id="inputKodeKelas" placeholder="Masukkan Kode Kelas dari gurumu" />
+          <button id="btnJoinKelas">Gabung Kelas</button>
+        </div>
+        <p class="empty-hint">Kode Kelas didapat dari gurumu. Ini menghubungkanmu ke daftar aktivitas belajar kelas tersebut.</p>`;
+      document.getElementById('btnJoinKelas').addEventListener('click', gabungKelas);
+    }
+
+    async function gabungKelas() {
+      const input = document.getElementById('inputKodeKelas');
+      const kode = input.value.trim();
+      if (!kode) { alert('Masukkan kode kelas terlebih dahulu.'); return; }
+      const btn = document.getElementById('btnJoinKelas');
+      btn.disabled = true; btn.textContent = 'Menghubungkan...';
+      try {
+        const res = await fetchWithAuth('/kelas/gabung', {
+          method: 'POST',
+          body: JSON.stringify({ kode_kelas: kode })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || 'Kode kelas tidak ditemukan.');
+          return;
+        }
+        localStorage.setItem('kelasIdAktifSiswa', String(data.data.id));
+        await initKelas();
+      } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan koneksi ke server.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Gabung Kelas'; }
+      }
+    }
+
+    async function setKelasAktif(kelasId) {
+      const kelas = daftarKelasSiswa.find(k => String(k.id) === String(kelasId));
+      if (!kelas) return;
+      localStorage.setItem('kelasIdAktifSiswa', String(kelas.id));
+      renderKelasPanel(kelas);
+      await muatAktivitas(kelas.id);
+    }
+
+    async function initKelas() {
+      try {
+        const res = await fetchWithAuth('/kelas/siswa');
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data) || data.length === 0) {
+          localStorage.removeItem('kelasIdAktifSiswa');
+          renderJoinForm();
+          return;
+        }
+        daftarKelasSiswa = data;
+        const idTersimpan = localStorage.getItem('kelasIdAktifSiswa');
+        const kelasAktif = daftarKelasSiswa.find(k => String(k.id) === idTersimpan) || daftarKelasSiswa[0];
+        localStorage.setItem('kelasIdAktifSiswa', String(kelasAktif.id));
+        renderKelasPanel(kelasAktif);
+        await muatAktivitas(kelasAktif.id);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('kelasContent').innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Coba muat ulang halaman.</div>';
+      }
+    }
+
+    // ================= 2. PANEL AKTIVITAS (Autonomous Learning Path) =================
+    async function muatAktivitas(kelasId) {
+      const panel = document.getElementById('aktivitasPanel');
+      const wrap = document.getElementById('daftarAktivitas');
+      panel.style.display = 'block';
+      wrap.innerHTML = '<div class="empty-hint">Memuat aktivitas...</div>';
+      try {
+        const res = await fetchWithAuth(`/aktivitas/${kelasId}`);
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data) || data.length === 0) {
+          wrap.innerHTML = '<div class="empty-hint">📭 Belum ada aktivitas di kelas ini. Tanyakan gurumu kapan aktivitas akan dibuat.</div>';
+          return;
+        }
+        wrap.innerHTML = '';
+        data.forEach((akt, i) => {
+          const chip = document.createElement('button');
+          chip.className = 'aktivitas-chip';
+          chip.textContent = akt.judul;
+          chip.addEventListener('click', () => {
+            wrap.querySelectorAll('.aktivitas-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            pilihAktivitas(akt);
+          });
+          wrap.appendChild(chip);
+          if (i === 0) chip.click();
+        });
+      } catch (err) {
+        console.error(err);
+        wrap.innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Materi tetap bisa dibuka ulang saat online kembali.</div>';
+      }
+    }
+
+    // ================= 3. PANEL MATERI + JALUR OTONOM =================
+    function pilihAktivitas(akt) {
+      aktivitasTerpilih = akt;
+      waktuMulaiBelajar = Date.now();
+      jalurAktif = 'lengkap';
+      simplifierAktif = false;
+
+      document.getElementById('materiPanel').style.display = 'block';
+      document.getElementById('materiJudul').textContent = akt.judul;
+      document.getElementById('materiTemplate').textContent = akt.template_pedagogis || 'Aktivitas';
+      document.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.jalur-tab[data-jalur="lengkap"]').classList.add('active');
+      document.getElementById('btnSimplifier').classList.remove('active');
+      document.getElementById('btnSimplifier').textContent = '✨ AI Simplifier: sederhanakan bahasa';
+
+      renderJalur('lengkap');
+      bukaJurnal(akt);
+    }
+
+    function teksUntukJalur(jalur) {
+      if (!aktivitasTerpilih) return '';
+      if (jalur === 'ringkas') {
+        // Otonomi: siswa memilih versi ringkas dari deskripsi yang sama
+        return (aktivitasTerpilih.deskripsi || 'Belum ada deskripsi materi.').split('\n').slice(0, 2).join('\n');
+      }
+      if (jalur === 'tantangan') {
+        return aktivitasTerpilih.pertanyaan_pemantik || 'Belum ada tantangan/pertanyaan pemantik untuk aktivitas ini.';
+      }
+      return aktivitasTerpilih.deskripsi || 'Belum ada deskripsi materi.';
+    }
+
+    function renderJalur(jalur) {
+      jalurAktif = jalur;
+      teksAsliMateri = teksUntukJalur(jalur);
+      simplifierAktif = false;
+      document.getElementById('btnSimplifier').classList.remove('active');
+      document.getElementById('materiContent').textContent = teksAsliMateri;
+    }
+
+    document.querySelectorAll('.jalur-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderJalur(tab.dataset.jalur);
+      });
+    });
+
+    // ================= 4. AI SIMPLIFIER TOGGLE =================
+    document.getElementById('btnSimplifier').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSimplifier');
+      if (simplifierAktif) {
+        document.getElementById('materiContent').textContent = teksAsliMateri;
+        simplifierAktif = false;
+        btn.classList.remove('active');
+        btn.textContent = '✨ AI Simplifier: sederhanakan bahasa';
+        return;
+      }
+      const contentEl = document.getElementById('materiContent');
+      const teksSebelum = contentEl.textContent;
+      contentEl.innerHTML = '<span class="materi-loading">✨ AI sedang menyederhanakan bahasa...</span>';
+      btn.disabled = true;
+      try {
+        const res = await fetchWithAuth('/ai/simplify', {
+          method: 'POST',
+          body: JSON.stringify({ teks_asli: teksAsliMateri })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          contentEl.textContent = data.teks_sederhana;
+          simplifierAktif = true;
+          btn.classList.add('active');
+          btn.textContent = '↩️ Kembalikan Bahasa Asli';
+        } else {
+          contentEl.textContent = teksSebelum;
+          alert('Gagal menyederhanakan: ' + (data.message || 'Terjadi kesalahan.'));
+        }
+      } catch (err) {
+        console.error(err);
+        contentEl.textContent = teksSebelum;
+        alert('Koneksi ke AI Simplifier terputus.');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ================= 5. INCLUSIVITY TOOLBAR =================
+    document.getElementById('btnTTS').addEventListener('click', () => {
+      const teks = document.getElementById('materiContent').textContent;
+      if (!teks || !('speechSynthesis' in window)) {
+        alert('Fitur suara tidak didukung di perangkat ini, atau belum ada materi yang dibuka.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(teks);
+      utter.lang = 'id-ID';
+      window.speechSynthesis.speak(utter);
+    });
+
+    document.getElementById('btnDisleksia').addEventListener('click', function () {
+      document.body.classList.toggle('mode-disleksia');
+      this.classList.toggle('active');
+    });
+
+    let ukuranFont = 0; // 0 normal, 1 besar, 2 sangat besar
+    function terapkanUkuranFont() {
+      const el = document.getElementById('materiContent');
+      el.classList.remove('font-lg', 'font-xl');
+      if (ukuranFont === 1) el.classList.add('font-lg');
+      if (ukuranFont === 2) el.classList.add('font-xl');
+    }
+    document.getElementById('btnFontBesar').addEventListener('click', () => { ukuranFont = Math.min(2, ukuranFont + 1); terapkanUkuranFont(); });
+    document.getElementById('btnFontKecil').addEventListener('click', () => { ukuranFont = Math.max(0, ukuranFont - 1); terapkanUkuranFont(); });
+
+    // ================= 6. JURNAL REFLEKSI (dinamis, tidak hardcode lagi) =================
+    function bukaJurnal(akt) {
+      document.getElementById('jurnalLocked').style.display = 'none';
+      document.getElementById('jurnalUnlocked').style.display = 'block';
+      document.getElementById('labelJawabanAwal').textContent = `Apa yang kamu pahami tentang "${akt.judul}" hari ini?`;
+      // Reset ke tahap 1 setiap ganti aktivitas
+      document.getElementById('tahap-1').style.display = 'block';
+      document.getElementById('tahap-2').style.display = 'none';
+      document.getElementById('jawabanAwal').value = '';
+      document.getElementById('jawabanLanjutan').value = '';
+      document.getElementById('stepDot2').classList.remove('active');
+    }
+
+    let dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '' };
+
+    document.getElementById('btnKirimAwal').addEventListener('click', async () => {
+      if (!aktivitasTerpilih) { alert('Pilih aktivitas terlebih dahulu.'); return; }
+      const jawabanAwal = document.getElementById('jawabanAwal').value;
+      if (!jawabanAwal) { alert('Harap isi jawaban awalmu terlebih dahulu!'); return; }
+
+      const btn = document.getElementById('btnKirimAwal');
+      btn.textContent = 'AI sedang berpikir...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetchWithAuth('/ai/socratic', {
+          method: 'POST',
+          body: JSON.stringify({
+            topik_fisika: aktivitasTerpilih.judul,
+            jawaban_awal_siswa: jawabanAwal
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          dataJurnalSementara.jawaban_awal = jawabanAwal;
+          dataJurnalSementara.pertanyaan_ai = data.pertanyaan_ai;
+          document.getElementById('tahap-1').style.display = 'none';
+          document.getElementById('tahap-2').style.display = 'block';
+          document.getElementById('teksPertanyaanAI').textContent = data.pertanyaan_ai;
+          document.getElementById('stepDot2').classList.add('active');
+        } else {
+          alert('Gagal memuat AI: ' + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Koneksi ke AI terputus.');
+      } finally {
+        btn.textContent = 'Kirim ke AI Companion';
+        btn.disabled = false;
+      }
+    });
+
+    function simpanKeIndexedDB(dataJurnal) {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('MeaningEduDB', 1);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('jurnalOffline')) {
+            db.createObjectStore('jurnalOffline', { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const tx = db.transaction('jurnalOffline', 'readwrite');
+          tx.objectStore('jurnalOffline').add(dataJurnal);
+          tx.oncomplete = () => resolve();
+          tx.onerror = (err) => reject(err);
+        };
+        request.onerror = (err) => reject(err);
+      });
+    }
+
+    async function kirimJurnalKeServer(payload) {
+      const response = await fetchWithAuth(`/jurnal/${payload.aktivitas_id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          jawaban_awal: payload.jawaban_awal,
+          pertanyaan_ai: payload.pertanyaan_ai,
+          jawaban_lanjutan: payload.jawaban_lanjutan,
+          durasi_belajar: payload.durasi_belajar
+        })
+      });
+      if (response.ok) {
+        alert('Hebat! Jurnal refleksimu berhasil disimpan.');
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert('Gagal menyimpan: ' + errorData.message);
+      }
+    }
+
+    document.getElementById('btnSimpanJurnal').addEventListener('click', async () => {
+      if (!aktivitasTerpilih) return;
+      const jawabanLanjutan = document.getElementById('jawabanLanjutan').value;
+      if (!jawabanLanjutan) { alert('Tuliskan refleksi lanjutanmu!'); return; }
+
+      const btn = document.getElementById('btnSimpanJurnal');
+      btn.textContent = 'Menyimpan...';
+      btn.disabled = true;
+      dataJurnalSementara.jawaban_lanjutan = jawabanLanjutan;
+
+      const durasiDetik = waktuMulaiBelajar ? Math.round((Date.now() - waktuMulaiBelajar) / 1000) : 0;
+
+      const payload = {
+        jawaban_awal: dataJurnalSementara.jawaban_awal,
+        pertanyaan_ai: dataJurnalSementara.pertanyaan_ai,
+        jawaban_lanjutan: dataJurnalSementara.jawaban_lanjutan,
+        durasi_belajar: durasiDetik,
+        aktivitas_id: aktivitasTerpilih.id,
+        token: localStorage.getItem('token')
+      };
+
+      try {
+        if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
+          await simpanKeIndexedDB(payload);
+          const swRegistration = await navigator.serviceWorker.ready;
+          await swRegistration.sync.register('sync-jurnal');
+          alert('Anda sedang offline. Jurnal disimpan secara luring dan akan otomatis terkirim saat sinyal kembali! 📡');
+          window.location.reload();
+        } else {
+          await kirimJurnalKeServer(payload);
+        }
+      } catch (err) {
+        console.error('Gagal simpan:', err);
+        alert('Terjadi kesalahan jaringan.');
+      } finally {
+        btn.textContent = 'Simpan Jurnal Akhir';
+        btn.disabled = false;
+      }
+    });
+
+    // ================= INIT =================
+    initKelas();
+  })();
+  </script>
+</body>
+</html>

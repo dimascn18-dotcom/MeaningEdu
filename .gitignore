@@ -1,0 +1,17 @@
+# MeaningEdu .gitignore
+node_modules/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+dist/
+.vercel/
+
+# Kredensial / data seed — jangan pernah commit
+login.json
+data.json
+backend/login.json
+backend/data.json
+*.env
+credentials.json

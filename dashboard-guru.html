@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dasbor Guru — MeaningEdu</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1A3A2A" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .gd-shell { max-width: 1140px; margin: 0 auto; padding: 40px 24px 80px; }
+    .gd-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
+    .gd-head h1 { font-family: var(--font-display); font-size:1.8rem; color:var(--forest); }
+    .gd-head p { color:var(--text-lt); font-size:0.92rem; margin-top:4px; }
+    .exit-link { font-size:0.85rem; color:var(--text-lt); font-weight:600; }
+    .exit-link:hover { color:var(--forest); text-decoration:underline; }
+
+    .gd-grid { display:grid; grid-template-columns: 260px 1fr; gap:24px; align-items:start; }
+    @media (max-width: 800px) { .gd-grid { grid-template-columns: 1fr; } }
+
+    .panel { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid rgba(26,58,42,0.07); padding:20px; margin-bottom:20px; }
+    .panel h3 { font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--forest); margin-bottom:14px; }
+
+    .kelas-item { display:block; width:100%; text-align:left; background:var(--cream); border:2px solid transparent; border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:10px; cursor:pointer; font-family:var(--font-body); transition:var(--trans); }
+    .kelas-item:hover { border-color:var(--sage-lt); }
+    .kelas-item.active { background:var(--forest); color:var(--white); }
+    .kelas-item .k-nama { font-weight:700; font-size:0.92rem; display:block; }
+    .kelas-item .k-topik { font-size:0.78rem; opacity:0.75; }
+    .kelas-id-badge { font-size:0.68rem; opacity:0.7; display:block; margin-top:2px; }
+    .salin-kode-link { cursor:pointer; text-decoration:underline; opacity:1; }
+    .salin-kode-link:hover { color:var(--sage-lt); }
+
+    .link-btn {
+      display:inline-flex; align-items:center; gap:6px; background:none; border:none; padding:0;
+      color:var(--forest-md); font-weight:700; font-size:0.85rem; cursor:pointer; font-family:var(--font-body);
+    }
+    .link-btn:hover { text-decoration:underline; }
+
+    /* Form generik (Buat Kelas / Activity Builder) */
+    .form-mini { margin-top:14px; padding-top:14px; border-top:1px dashed var(--cream-dk); }
+    .form-mini input, .form-mini select, .form-mini textarea {
+      width:100%; padding:10px 14px; margin-bottom:10px; border:2px solid var(--cream-dk); border-radius:var(--radius-sm);
+      font-family:var(--font-body); font-size:0.88rem; color:var(--text); background:var(--cream); outline:none; transition:var(--trans);
+    }
+    .form-mini input:focus, .form-mini select:focus, .form-mini textarea:focus { border-color:var(--forest-md); background:var(--white); }
+    .form-mini label { display:block; font-size:0.78rem; font-weight:700; color:var(--forest); margin-bottom:5px; }
+    .btn-submit-mini {
+      width:100%; padding:11px; background:var(--forest); color:var(--white); border:none; border-radius:50px;
+      font-weight:600; font-size:0.88rem; cursor:pointer; font-family:var(--font-body); transition:var(--trans);
+    }
+    .btn-submit-mini:hover { background:var(--forest-md); }
+    .btn-submit-mini:disabled { opacity:0.6; cursor:wait; }
+
+    .aktivitas-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .aktivitas-chip { padding:9px 18px; border-radius:50px; border:2px solid var(--cream-dk); background:var(--white); font-size:0.85rem; font-weight:600; color:var(--text-md); cursor:pointer; transition:var(--trans); }
+    .aktivitas-chip:hover { border-color:var(--forest); color:var(--forest); }
+    .aktivitas-chip.active { background:var(--forest); border-color:var(--forest); color:var(--white); }
+
+    /* Meaningful Activity Builder */
+    .builder-panel { border:1px solid var(--sage-lt); background:linear-gradient(160deg,#F3F9F5,var(--white)); }
+    .builder-tools { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
+    .ai-tool-btn {
+      display:flex; align-items:center; gap:6px; background:var(--white); border:2px solid var(--cream-dk); border-radius:50px;
+      padding:8px 16px; font-size:0.8rem; font-weight:600; color:var(--text-md); cursor:pointer; transition:var(--trans); font-family:var(--font-body);
+    }
+    .ai-tool-btn:hover { border-color:var(--forest); color:var(--forest); }
+    .ai-tool-btn:disabled { opacity:0.6; cursor:wait; }
+
+    .ai-suggestion-box {
+      display:none; gap:10px; background:var(--white); border-left:4px solid var(--gold); border-radius:8px;
+      padding:14px 18px; margin:10px 0 16px; box-shadow:var(--shadow); white-space:pre-wrap; font-size:0.88rem; color:var(--text-md); line-height:1.6;
+    }
+    .ai-suggestion-box strong { color:var(--forest); display:block; font-size:0.78rem; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.03em; }
+
+    .mli-summary { display:flex; align-items:center; gap:20px; background:linear-gradient(160deg,#E8F2EC,var(--cream)); border-radius:var(--radius); padding:22px 26px; margin-bottom:22px; border:1px solid var(--sage-lt); }
+    .mli-summary .score { font-family: var(--font-display); font-size:2.6rem; color:var(--forest); font-weight:600; }
+    .mli-summary .score-label { font-size:0.82rem; color:var(--text-lt); }
+
+    .ai-alert { display:none; gap:12px; background:var(--white); border-left:4px solid var(--gold); border-radius:8px; padding:14px 18px; margin-bottom:22px; box-shadow:var(--shadow); white-space:pre-wrap; }
+    .ai-alert strong { color:var(--forest); display:block; font-size:0.82rem; margin-bottom:2px; }
+    .ai-alert p { font-size:0.9rem; color:var(--text-md); line-height:1.6; }
+
+    table.mli-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+    table.mli-table th { text-align:left; padding:10px 12px; color:var(--text-lt); font-weight:700; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em; border-bottom:2px solid var(--cream-dk); cursor:pointer; user-select:none; }
+    table.mli-table th:hover { color:var(--forest); }
+    table.mli-table td { padding:12px; border-bottom:1px solid var(--cream-dk); }
+    table.mli-table tr:hover td { background:var(--cream); }
+    .bar-cell { display:flex; align-items:center; gap:8px; }
+    .bar-track { flex:1; height:6px; background:var(--cream-dk); border-radius:4px; overflow:hidden; min-width:50px; }
+    .bar-fill { height:100%; background:var(--sage); }
+    .skor-badge { display:inline-block; padding:3px 10px; border-radius:50px; font-weight:700; font-size:0.8rem; }
+    .skor-tinggi { background:#E3F1E8; color:var(--forest-md); }
+    .skor-sedang { background:#FCEFD9; color:#9A6A1E; }
+    .skor-rendah { background:#FBE3DA; color:#B14A1E; }
+
+    .empty-state, .loading-state { text-align:center; padding:50px 20px; color:var(--text-lt); }
+    .empty-state .ic, .loading-state .ic { font-size:2.2rem; margin-bottom:10px; display:block; }
+    .empty-hint { color:var(--text-lt); font-size:0.85rem; padding:6px 0; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar scrolled">
+    <div class="nav-inner">
+      <a href="dashboard-guru.html" class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">MeaningEdu</span>
+      </a>
+      <a href="index.html" class="exit-link" onclick="localStorage.removeItem('token'); localStorage.removeItem('user');">Keluar</a>
+    </div>
+  </nav>
+
+  <main class="gd-shell">
+    <div class="gd-head">
+      <div>
+        <h1 id="sapaanGuru">Dasbor Guru</h1>
+        <p>Pantau Meaningful Learning Index (MLI) kelasmu secara real-time.</p>
+      </div>
+    </div>
+
+    <div class="gd-grid">
+      <!-- Kolom kiri: daftar kelas + buat kelas -->
+      <aside>
+        <div class="panel">
+          <h3>Kelas Saya</h3>
+          <div id="daftarKelas">
+            <div class="loading-state"><span class="ic">⏳</span>Memuat kelas...</div>
+          </div>
+          <button class="link-btn" id="toggleBuatKelas" style="margin-top:8px;">+ Buat Kelas Baru</button>
+          <div class="form-mini" id="formBuatKelas" style="display:none;">
+            <label>Nama Kelas</label>
+            <input type="text" id="inputNamaKelas" placeholder="Kelas XI - Gelombang Mekanik" />
+            <label>Topik Fisika</label>
+            <input type="text" id="inputTopikKelas" placeholder="Gelombang Mekanik" />
+            <button class="btn-submit-mini" id="btnSimpanKelas">Simpan Kelas</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Kolom kanan: activity builder + aktivitas + MLI -->
+      <section>
+        <!-- MEANINGFUL ACTIVITY BUILDER -->
+        <div class="panel builder-panel" id="builderPanel" style="display:none;">
+          <h3>🛠️ Meaningful Activity Builder</h3>
+          <div class="form-mini" style="border:none; padding-top:0; margin-top:0;">
+            <label>Judul / Topik Aktivitas</label>
+            <input type="text" id="bJudul" placeholder="mis. Tekanan Hidrostatis" />
+
+            <label>Template Pedagogis</label>
+            <select id="bTemplate">
+              <option value="Inquiry Learning">Inquiry Learning</option>
+              <option value="Project-Based Learning">Project-Based Learning</option>
+              <option value="Eksperimen Mandiri">Eksperimen Mandiri</option>
+            </select>
+
+            <label>Deskripsi Aktivitas</label>
+            <textarea id="bDeskripsi" rows="3" placeholder="Jelaskan aktivitas belajarnya..."></textarea>
+
+            <label>Pertanyaan Pemantik</label>
+            <textarea id="bPertanyaan" rows="2" placeholder="Pertanyaan pemicu rasa ingin tahu siswa..."></textarea>
+
+            <div class="builder-tools">
+              <button class="ai-tool-btn" id="btnLocalContext">🌿 AI Local Context: Isi Otomatis</button>
+              <button class="ai-tool-btn" id="btnValidasiAI">🤖 Validasi AI</button>
+              <button class="ai-tool-btn" id="btnCopilot">🧪 AI Teaching Co-Pilot</button>
+            </div>
+
+            <div class="ai-suggestion-box" id="boxValidasi"><strong>Saran Relevansi Kontekstual</strong><span id="teksValidasi"></span></div>
+            <div class="ai-suggestion-box" id="boxCopilot"><strong>Panduan Eksperimen (AI Co-Pilot)</strong><span id="teksCopilot"></span></div>
+
+            <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <h3 style="margin-bottom:0;">Pilih Aktivitas</h3>
+            <button class="link-btn" id="toggleBuilder" style="display:none;">+ Rancang Aktivitas Baru</button>
+          </div>
+          <div class="aktivitas-row" id="daftarAktivitas" style="margin-top:14px;">
+            <div class="empty-state" style="padding:16px 0;">Pilih kelas terlebih dahulu di sebelah kiri.</div>
+          </div>
+
+          <div id="mliArea"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      if (!user || user.peran !== 'guru') {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('sapaanGuru').textContent = `Halo, ${user.nama.split(' ')[0]} 👋`;
+
+      let currentSort = { key: 'skor_akhir', dir: 'desc' };
+      let currentData = [];
+      let kelasAktifId = null;
+      let aktivitasAktifId = null;
+      let aktivitasAktifJudul = null;
+
+      // ================= BUAT KELAS =================
+      document.getElementById('toggleBuatKelas').addEventListener('click', () => {
+        const form = document.getElementById('formBuatKelas');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+
+      document.getElementById('btnSimpanKelas').addEventListener('click', async () => {
+        const nama_kelas = document.getElementById('inputNamaKelas').value.trim();
+        const topik_fisika = document.getElementById('inputTopikKelas').value.trim();
+        if (!nama_kelas) { alert('Nama kelas wajib diisi.'); return; }
+
+        const btn = document.getElementById('btnSimpanKelas');
+        btn.disabled = true; btn.textContent = 'Menyimpan...';
+        try {
+          const res = await fetchWithAuth('/kelas', {
+            method: 'POST',
+            body: JSON.stringify({ nama_kelas, topik_fisika })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById('inputNamaKelas').value = '';
+            document.getElementById('inputTopikKelas').value = '';
+            document.getElementById('formBuatKelas').style.display = 'none';
+            muatKelas();
+          } else {
+            alert('Gagal membuat kelas: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Terjadi kesalahan koneksi ke server.');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Simpan Kelas';
+        }
+      });
+
+      // ================= MEANINGFUL ACTIVITY BUILDER =================
+      document.getElementById('toggleBuilder').addEventListener('click', () => {
+        const panel = document.getElementById('builderPanel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        document.getElementById('boxValidasi').style.display = 'none';
+        document.getElementById('boxCopilot').style.display = 'none';
+      });
+
+      // AI Local Context & SDG Project Builder — isi otomatis deskripsi + pertanyaan pemantik
+      document.getElementById('btnLocalContext').addEventListener('click', async () => {
+        const judul = document.getElementById('bJudul').value.trim();
+        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        const btn = document.getElementById('btnLocalContext');
+        btn.disabled = true; btn.textContent = '🌿 Menyusun ide kontekstual...';
+        try {
+          const res = await fetchWithAuth('/ai/local-context', {
+            method: 'POST',
+            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById('bDeskripsi').value = data.deskripsi;
+            document.getElementById('bPertanyaan').value = data.pertanyaan_pemantik;
+          } else {
+            alert('Gagal: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Koneksi ke AI terputus.');
+        } finally {
+          btn.disabled = false; btn.textContent = '🌿 AI Local Context: Isi Otomatis';
+        }
+      });
+
+      // Validasi AI — saran relevansi kontekstual draf aktivitas
+      document.getElementById('btnValidasiAI').addEventListener('click', async () => {
+        const judul = document.getElementById('bJudul').value.trim();
+        const deskripsi = document.getElementById('bDeskripsi').value.trim();
+        const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
+        if (!judul && !deskripsi) { alert('Isi draf aktivitas terlebih dahulu sebelum divalidasi.'); return; }
+
+        const btn = document.getElementById('btnValidasiAI');
+        btn.disabled = true; btn.textContent = '🤖 Menganalisis draf...';
+        try {
+          const res = await fetchWithAuth('/ai/validate-activity', {
+            method: 'POST',
+            body: JSON.stringify({ judul, deskripsi, pertanyaan_pemantik, wilayah_sekolah: user.wilayah_sekolah })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById('teksValidasi').textContent = data.saran;
+            document.getElementById('boxValidasi').style.display = 'flex';
+          } else {
+            alert('Gagal: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Koneksi ke AI terputus.');
+        } finally {
+          btn.disabled = false; btn.textContent = '🤖 Validasi AI';
+        }
+      });
+
+      // AI Teaching Co-Pilot — panduan eksperimen bahan lokal
+      document.getElementById('btnCopilot').addEventListener('click', async () => {
+        const judul = document.getElementById('bJudul').value.trim();
+        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        const btn = document.getElementById('btnCopilot');
+        btn.disabled = true; btn.textContent = '🧪 Menyusun panduan...';
+        try {
+          const res = await fetchWithAuth('/ai/teaching-copilot', {
+            method: 'POST',
+            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById('teksCopilot').textContent = data.panduan;
+            document.getElementById('boxCopilot').style.display = 'flex';
+          } else {
+            alert('Gagal: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Koneksi ke AI terputus.');
+        } finally {
+          btn.disabled = false; btn.textContent = '🧪 AI Teaching Co-Pilot';
+        }
+      });
+
+      // Publish aktivitas ke kelas aktif
+      document.getElementById('btnPublishAktivitas').addEventListener('click', async () => {
+        if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
+        const judul = document.getElementById('bJudul').value.trim();
+        const deskripsi = document.getElementById('bDeskripsi').value.trim();
+        const template_pedagogis = document.getElementById('bTemplate').value;
+        const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
+        if (!judul) { alert('Judul aktivitas wajib diisi.'); return; }
+
+        const btn = document.getElementById('btnPublishAktivitas');
+        btn.disabled = true; btn.textContent = 'Menerbitkan...';
+        try {
+          const res = await fetchWithAuth(`/aktivitas/${kelasAktifId}`, {
+            method: 'POST',
+            body: JSON.stringify({ judul, deskripsi, template_pedagogis, pertanyaan_pemantik })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            alert('Aktivitas bermakna berhasil dirancang!');
+            document.getElementById('bJudul').value = '';
+            document.getElementById('bDeskripsi').value = '';
+            document.getElementById('bPertanyaan').value = '';
+            document.getElementById('boxValidasi').style.display = 'none';
+            document.getElementById('boxCopilot').style.display = 'none';
+            document.getElementById('builderPanel').style.display = 'none';
+            muatAktivitas(kelasAktifId);
+          } else {
+            alert('Gagal: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Terjadi kesalahan koneksi ke server.');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Publish Aktivitas';
+        }
+      });
+
+      // ================= MLI TABLE (tidak berubah dari versi sebelumnya) =================
+      function skorClass(skor) {
+        if (skor >= 75) return 'skor-tinggi';
+        if (skor >= 50) return 'skor-sedang';
+        return 'skor-rendah';
+      }
+
+      function barCell(value) {
+        const v = Number(value) || 0;
+        return `<div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(v,100)}%"></div></div><span>${v.toFixed(0)}</span></div>`;
+      }
+
+      function hitungRataDimensi() {
+        if (currentData.length === 0) return null;
+        const kunci = ['relevansi_kontekstual', 'otonomi', 'persepsi_kompetensi', 'keterlibatan_kognitif', 'refleksi_metakognitif'];
+        const total = { relevansi_kontekstual: 0, otonomi: 0, persepsi_kompetensi: 0, keterlibatan_kognitif: 0, refleksi_metakognitif: 0 };
+        currentData.forEach(r => kunci.forEach(k => total[k] += Number(r[k]) || 0));
+        const n = currentData.length;
+        return {
+          relevansi: (total.relevansi_kontekstual / n).toFixed(1),
+          otonomi: (total.otonomi / n).toFixed(1),
+          kompetensi: (total.persepsi_kompetensi / n).toFixed(1),
+          keterlibatan: (total.keterlibatan_kognitif / n).toFixed(1),
+          refleksi: (total.refleksi_metakognitif / n).toFixed(1)
+        };
+      }
+
+      async function muatSaranAI(rataRataKelas) {
+        const box = document.getElementById('aiAlertBox');
+        if (!box) return;
+        const dimensi = hitungRataDimensi();
+        if (!dimensi) { box.style.display = 'none'; return; }
+
+        box.style.display = 'flex';
+        box.querySelector('p').textContent = 'AI sedang menganalisis data kelas...';
+        try {
+          const res = await fetchWithAuth('/ai/pedagogical-advisor', {
+            method: 'POST',
+            body: JSON.stringify({ topik_fisika: aktivitasAktifJudul, rata_rata_kelas: rataRataKelas, dimensi })
+          });
+          const data = await res.json();
+          box.querySelector('p').textContent = res.ok ? data.saran : ('Gagal memuat saran: ' + data.message);
+        } catch (err) {
+          console.error(err);
+          box.querySelector('p').textContent = 'Gagal terhubung ke AI Pedagogical Advisor.';
+        }
+      }
+
+      function renderTable() {
+        const rows = [...currentData].sort((a, b) => {
+          const va = Number(a[currentSort.key]) || 0;
+          const vb = Number(b[currentSort.key]) || 0;
+          return currentSort.dir === 'asc' ? va - vb : vb - va;
+        });
+
+        const cols = [
+          { key: 'nama_siswa', label: 'Siswa', type: 'text' },
+          { key: 'relevansi_kontekstual', label: 'Relevansi', type: 'bar' },
+          { key: 'otonomi', label: 'Otonomi', type: 'bar' },
+          { key: 'persepsi_kompetensi', label: 'Kompetensi', type: 'bar' },
+          { key: 'keterlibatan_kognitif', label: 'Keterlibatan', type: 'bar' },
+          { key: 'refleksi_metakognitif', label: 'Refleksi', type: 'bar' },
+          { key: 'skor_akhir', label: 'Skor MLI', type: 'badge' },
+        ];
+
+        let html = '<table class="mli-table"><thead><tr>';
+        cols.forEach(c => {
+          const arrow = currentSort.key === c.key ? (currentSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+          html += `<th data-key="${c.key}">${c.label}${arrow}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        if (rows.length === 0) {
+          html += `<tr><td colspan="${cols.length}"><div class="empty-state"><span class="ic">🗒️</span>Belum ada siswa yang mengisi jurnal refleksi untuk aktivitas ini.</div></td></tr>`;
+        } else {
+          rows.forEach(r => {
+            html += '<tr>';
+            cols.forEach(c => {
+              const val = r[c.key];
+              if (c.type === 'bar') html += `<td>${barCell(val)}</td>`;
+              else if (c.type === 'badge') html += `<td><span class="skor-badge ${skorClass(val)}">${Number(val).toFixed(1)}</span></td>`;
+              else html += `<td>${val ?? '-'}</td>`;
+            });
+            html += '</tr>';
+          });
+        }
+        html += '</tbody></table>';
+
+        const area = document.getElementById('mliArea');
+        let tableHolder = area.querySelector('#tableHolder');
+        if (!tableHolder) {
+          area.insertAdjacentHTML('beforeend', `<div id="tableHolder">${html}</div>`);
+        } else {
+          tableHolder.innerHTML = html;
+        }
+
+        area.querySelectorAll('th[data-key]').forEach(th => {
+          th.addEventListener('click', () => {
+            const key = th.getAttribute('data-key');
+            if (currentSort.key === key) {
+              currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+              currentSort = { key, dir: 'desc' };
+            }
+            renderTable();
+          });
+        });
+      }
+
+      async function muatMLI(aktivitasId) {
+        const area = document.getElementById('mliArea');
+        area.innerHTML = '<div class="loading-state"><span class="ic">⏳</span>Memuat data MLI...</div>';
+        try {
+          const res = await fetchWithAuth(`/mli/dashboard/${aktivitasId}`);
+          const data = await res.json();
+          if (!res.ok) {
+            area.innerHTML = `<div class="empty-state"><span class="ic">⚠️</span>${data.message || 'Gagal memuat data MLI.'}</div>`;
+            return;
+          }
+          currentData = data.detail_siswa || [];
+          const rata = Number(data.rata_rata_kelas) || 0;
+
+          area.innerHTML = `
+            <div class="ai-alert" id="aiAlertBox">
+              <span style="font-size:1.1rem; color:var(--gold);">✦</span>
+              <div><strong>Saran AI Pedagogical Advisor</strong><p>Memuat saran...</p></div>
+            </div>
+            <div class="mli-summary">
+              <div class="score">${rata.toFixed(1)}</div>
+              <div>
+                <div class="score-label">Rata-rata Meaningful Learning Index kelas</div>
+                <div class="score-label">Berdasarkan ${currentData.length} jurnal refleksi siswa</div>
+              </div>
+            </div>
+          `;
+          renderTable();
+          muatSaranAI(rata);
+        } catch (err) {
+          console.error(err);
+          area.innerHTML = '<div class="empty-state"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';
+        }
+      }
+
+      async function muatAktivitas(kelasId) {
+        kelasAktifId = kelasId;
+        document.getElementById('toggleBuilder').style.display = 'inline-flex';
+
+        const wrap = document.getElementById('daftarAktivitas');
+        wrap.innerHTML = '<div class="loading-state"><span class="ic">⏳</span>Memuat aktivitas...</div>';
+        document.getElementById('mliArea').innerHTML = '';
+        try {
+          const res = await fetchWithAuth(`/aktivitas/${kelasId}`);
+          const data = await res.json();
+          if (!res.ok || !Array.isArray(data) || data.length === 0) {
+            wrap.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="ic">📭</span>Belum ada aktivitas di kelas ini. Klik "+ Rancang Aktivitas Baru" di atas untuk membuatnya.</div>';
+            return;
+          }
+          wrap.innerHTML = '';
+          data.forEach((akt, i) => {
+            const chip = document.createElement('button');
+            chip.className = 'aktivitas-chip' + (i === 0 ? ' active' : '');
+            chip.textContent = akt.judul;
+            chip.addEventListener('click', () => {
+              wrap.querySelectorAll('.aktivitas-chip').forEach(c => c.classList.remove('active'));
+              chip.classList.add('active');
+              aktivitasAktifId = akt.id;
+              aktivitasAktifJudul = akt.judul;
+              muatMLI(akt.id);
+            });
+            wrap.appendChild(chip);
+          });
+          aktivitasAktifId = data[0].id;
+          aktivitasAktifJudul = data[0].judul;
+          muatMLI(data[0].id);
+        } catch (err) {
+          console.error(err);
+          wrap.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';
+        }
+      }
+
+      async function muatKelas() {
+        const wrap = document.getElementById('daftarKelas');
+        try {
+          const res = await fetchWithAuth('/kelas');
+          const data = await res.json();
+          if (!res.ok || !Array.isArray(data) || data.length === 0) {
+            wrap.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="ic">🏫</span>Anda belum membuat kelas. Klik tombol di bawah untuk membuat kelas pertamamu.</div>';
+            return;
+          }
+          wrap.innerHTML = '';
+          data.forEach((k, i) => {
+            const item = document.createElement('button');
+            item.className = 'kelas-item' + (i === 0 ? ' active' : '');
+            item.innerHTML = `<span class="k-nama">${k.nama_kelas}</span><span class="k-topik">${k.topik_fisika || ''}</span><span class="kelas-id-badge">Kode Kelas untuk siswa: <strong>${k.kode_kelas}</strong> <span class="salin-kode-link" data-kode="${k.kode_kelas}" title="Salin kode">📋 Salin</span></span>`;
+            item.querySelector('.salin-kode-link').addEventListener('click', (e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(k.kode_kelas).then(() => {
+                const el = e.currentTarget;
+                const asli = el.textContent;
+                el.textContent = '✅ Tersalin!';
+                setTimeout(() => { el.textContent = asli; }, 1500);
+              });
+            });
+            item.addEventListener('click', () => {
+              wrap.querySelectorAll('.kelas-item').forEach(c => c.classList.remove('active'));
+              item.classList.add('active');
+              muatAktivitas(k.id);
+            });
+            wrap.appendChild(item);
+          });
+          muatAktivitas(data[0].id);
+        } catch (err) {
+          console.error(err);
+          wrap.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';
+        }
+      }
+
+      muatKelas();
+    })();
+  </script>
+</body>
+</html>
