@@ -1,7 +1,7 @@
 // MeaningEdu Service Worker — Offline-First PWA
 // PENTING: naikkan angka versi ini SETIAP kali Anda deploy perubahan baru.
 // Ini yang memaksa browser membuang cache lama tanpa perlu Ctrl+F5.
-const CACHE_NAME = 'meaningedu-v2';
+const CACHE_NAME = 'meaningedu-v3';
 const ASSETS = [
   '/',
   '/index.html',

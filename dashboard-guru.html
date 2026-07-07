@@ -277,7 +277,21 @@
 
   <script src="app.js"></script>
   <script>
-    // ================= SIMPLE CLASS & MATERIAL MANAGER (Gap #2) =================
+    (function () {
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      if (!user || user.peran !== 'guru') {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('sapaanGuru').textContent = `Halo, ${user.nama.split(' ')[0]} 👋`;
+
+      let currentSort = { key: 'skor_akhir', dir: 'desc' };
+      let currentData = [];
+      let kelasAktifId = null;
+      let aktivitasAktifId = null;
+      let aktivitasAktifJudul = null;
+       // ================= SIMPLE CLASS & MATERIAL MANAGER (Gap #2) =================
 const DIMENSI_LABEL_MAP = {
   relevansi: '🧭 Relevansi', otonomi: '🕊️ Otonomi', kompetensi: '💪 Kompetensi',
   keterlibatan: '💬 Keterlibatan', refleksi: '🪞 Refleksi'
@@ -353,20 +367,6 @@ async function muatMateri(kelasId) {
     wrap.innerHTML = '<div class="empty-hint">🔌 Gagal memuat materi.</div>';
   }
 }
-    (function () {
-      const userRaw = localStorage.getItem('user');
-      const user = userRaw ? JSON.parse(userRaw) : null;
-      if (!user || user.peran !== 'guru') {
-        window.location.href = 'login.html';
-        return;
-      }
-      document.getElementById('sapaanGuru').textContent = `Halo, ${user.nama.split(' ')[0]} 👋`;
-
-      let currentSort = { key: 'skor_akhir', dir: 'desc' };
-      let currentData = [];
-      let kelasAktifId = null;
-      let aktivitasAktifId = null;
-      let aktivitasAktifJudul = null;
 
       // ================= BUAT KELAS =================
       document.getElementById('toggleBuatKelas').addEventListener('click', () => {
