@@ -70,6 +70,8 @@
 .materi-item .m-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
 .materi-item .m-judul { font-weight:700; color:var(--forest); font-size:0.9rem; }
 .materi-item .m-topik { font-size:0.76rem; color:var(--text-lt); }
+.materi-item .m-konten { margin-top:8px; font-size:0.85rem; color:var(--text-md); white-space:pre-wrap; line-height:1.6; }
+.materi-item .m-konten a { color:var(--forest-md); font-weight:600; text-decoration:underline; }
 .dim-badge-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
 .dim-badge { font-size:0.68rem; font-weight:700; padding:3px 10px; border-radius:50px; background:rgba(26,58,42,0.10); color:var(--forest); text-transform:uppercase; letter-spacing:0.02em; }
     .builder-tools { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
@@ -384,13 +386,18 @@ async function muatMateri(kelasId) {
       wrap.innerHTML = '<div class="empty-hint">Belum ada materi diunggah untuk kelas ini.</div>';
       return;
     }
-    wrap.innerHTML = data.map(m => `
+   wrap.innerHTML = data.map(m => `
       <div class="materi-item">
         <div class="m-head">
           <span class="m-judul">${m.judul}</span>
           <span class="m-topik">${m.tipe_materi}</span>
         </div>
         <div class="m-topik">Topik: ${m.topik_fisika}</div>
+        <div class="m-konten">${
+          (m.tipe_materi === 'video' || m.tipe_materi === 'tautan') && /^https?:\/\//i.test((m.konten || '').trim())
+            ? `<a href="${m.konten}" target="_blank" rel="noopener">🔗 Buka ${m.tipe_materi === 'video' ? 'Video' : 'Tautan'}</a>`
+            : (m.konten || '<span class="empty-hint">Belum ada isi materi.</span>')
+        }</div>
         <div class="dim-badge-row">
           ${(m.dimensi_disasar || []).map(d => `<span class="dim-badge">${DIMENSI_LABEL_MAP[d] || d}</span>`).join('')}
         </div>

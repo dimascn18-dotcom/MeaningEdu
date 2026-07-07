@@ -76,6 +76,8 @@
 .materi-siswa-item .ms-judul { font-weight:700; color:var(--forest); font-size:0.92rem; }
 .materi-siswa-item .ms-tipe { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-lt); background:var(--white); padding:3px 10px; border-radius:50px; }
 .materi-siswa-item .ms-topik { font-size:0.8rem; color:var(--text-lt); margin-top:2px; }
+.materi-siswa-item .ms-konten { margin-top:10px; font-size:0.9rem; color:var(--text); white-space:pre-wrap; line-height:1.65; }
+.materi-siswa-item .ms-konten a { color:var(--forest-md); font-weight:700; text-decoration:underline; }
 .ms-dim-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .ms-dim-badge { font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:50px; background:rgba(200,168,75,0.18); color:#8C6820; }
     .aktivitas-chip:hover { border-color:var(--forest); color:var(--forest); }
@@ -447,6 +449,11 @@ async function muatMateriSiswa(kelasId) {
           <span class="ms-tipe">${m.tipe_materi}</span>
         </div>
         <div class="ms-topik">Topik: ${m.topik_fisika}</div>
+        <div class="ms-konten">${
+          (m.tipe_materi === 'video' || m.tipe_materi === 'tautan') && /^https?:\/\//i.test((m.konten || '').trim())
+            ? `<a href="${m.konten}" target="_blank" rel="noopener">🔗 Buka ${m.tipe_materi === 'video' ? 'Video' : 'Tautan'}</a>`
+            : (m.konten || '<span class="empty-hint">Belum ada isi materi.</span>')
+        }</div>
         <div class="ms-dim-row">
           ${(m.dimensi_disasar || []).map(d => `<span class="ms-dim-badge">${DIMENSI_LABEL_SISWA[d] || d}</span>`).join('')}
         </div>
