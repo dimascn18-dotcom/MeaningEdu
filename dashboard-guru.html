@@ -226,25 +226,35 @@
               <option value="Eksperimen Mandiri">Eksperimen Mandiri</option>
             </select>
 
-            <label>Jalur 1 — Materi Teks</label>
-            <textarea id="bJalurTeks" rows="3" placeholder="Jelaskan materi/aktivitas dalam bentuk teks..."></textarea>
+            <label>Jalur 1 — Materi Teks (Landasan Teori)</label>
+            <textarea id="bJalurTeks" rows="5" placeholder="Definisi formal, persamaan matematis kunci, dan analogi sehari-hari seputar topik ini... (bisa diisi otomatis lewat AI Materi Generator di bawah)"></textarea>
 
             <label>Jalur 2 — Video Simulasi</label>
             <textarea id="bJalurVideo" rows="3" placeholder="Deskripsi atau link video simulasi..."></textarea>
 
             <label>Jalur 3 — Eksperimen Mandiri (opsional)</label>
-            <textarea id="bJalurEksperimen" rows="3" placeholder="Instruksi eksperimen sederhana (bisa diisi otomatis lewat AI Teaching Co-Pilot di bawah)..."></textarea>
+            <textarea id="bJalurEksperimen" rows="8" placeholder="Judul, Tujuan, Pertanyaan Hipotesis, Alat &amp; Bahan, Langkah-langkah, Pertanyaan Pengolahan Data, Pertanyaan Kesimpulan... (bisa diisi otomatis lewat AI Teaching Co-Pilot di bawah)"></textarea>
 
-            <p style="font-size:0.78rem;color:var(--text-lt);margin:-4px 0 12px;">* Minimal 2 dari 3 jalur wajib diisi, agar siswa punya pilihan (mendukung dimensi Otonomi Belajar).</p>
+            <label style="color:#B14A1E;">🔒 Panduan Guru untuk Eksperimen Ini (Khusus Guru — TIDAK terlihat siswa)</label>
+            <textarea id="bCatatanGuru" rows="4" placeholder="Penjelasan konsep di balik eksperimen, hasil yang diharapkan, tips antisipasi kesalahan siswa... (bisa diisi otomatis lewat AI Teaching Co-Pilot)" style="border-color:#F0C4A8;background:#FBF3EE;"></textarea>
+
+            <p style="font-size:0.78rem;color:var(--text-lt);margin:-4px 0 12px;">* Minimal 2 dari 3 jalur wajib diisi, agar siswa punya pilihan (mendukung dimensi Otonomi Belajar). Panduan Guru bersifat opsional dan tidak dihitung sebagai jalur.</p>
 
             <label>Pertanyaan Pemantik</label>
             <textarea id="bPertanyaan" rows="2" placeholder="Pertanyaan pemicu rasa ingin tahu siswa..."></textarea>
 
             <div class="builder-tools">
-              <button class="ai-tool-btn" id="btnLocalContext">🌿 AI Local Context: Isi Otomatis</button>
+              <button class="ai-tool-btn" id="btnMateriGenerator">🧠 AI Materi Generator: Isi Otomatis</button>
+              <button class="ai-tool-btn" id="btnLocalContext">🌿 AI Local Context: Isi Pertanyaan Pemantik</button>
               <button class="ai-tool-btn" id="btnValidasiAI">🤖 Validasi AI</button>
-              <button class="ai-tool-btn" id="btnCopilot">🧪 AI Teaching Co-Pilot</button>
+              <button class="ai-tool-btn" id="btnCopilot">🧪 AI Teaching Co-Pilot: Rancang Eksperimen</button>
             </div>
+
+            <div class="ai-suggestion-box" id="boxValidasi"><strong>Saran Relevansi Kontekstual</strong><span id="teksValidasi"></span></div>
+            <div class="ai-suggestion-box" id="boxCopilot"><strong>🔒 Panduan Guru (khusus guru, tidak dikirim ke siswa)</strong><span id="teksCopilot"></span></div>
+
+            <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
+          </div>
 
             <div class="ai-suggestion-box" id="boxValidasi"><strong>Saran Relevansi Kontekstual</strong><span id="teksValidasi"></span></div>
             <div class="ai-suggestion-box" id="boxCopilot"><strong>Panduan Eksperimen (AI Co-Pilot)</strong><span id="teksCopilot"></span></div>
@@ -452,12 +462,38 @@ async function muatMateri(kelasId) {
         document.getElementById('boxCopilot').style.display = 'none';
       });
 
-      // AI Local Context & SDG Project Builder — isi otomatis deskripsi + pertanyaan pemantik
+      // AI Materi Generator — mengisi Jalur 1 (Materi Teks: definisi, persamaan, analogi)
+      document.getElementById('btnMateriGenerator').addEventListener('click', async () => {
+        const judul = document.getElementById('bJudul').value.trim();
+        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        const template_pedagogis = document.getElementById('bTemplate').value;
+        const btn = document.getElementById('btnMateriGenerator');
+        btn.disabled = true; btn.textContent = '🧠 Menyusun materi...';
+        try {
+          const res = await fetchWithAuth('/ai/generate-materi', {
+            method: 'POST',
+            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById('bJalurTeks').value = data.materi;
+          } else {
+            alert('Gagal: ' + data.message);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Koneksi ke AI terputus.');
+        } finally {
+          btn.disabled = false; btn.textContent = '🧠 AI Materi Generator: Isi Otomatis';
+        }
+      });
+
+      // AI Local Context & SDG Project Builder — sekarang HANYA mengisi Pertanyaan Pemantik
       document.getElementById('btnLocalContext').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
         if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
         const btn = document.getElementById('btnLocalContext');
-        btn.disabled = true; btn.textContent = '🌿 Menyusun ide kontekstual...';
+        btn.disabled = true; btn.textContent = '🌿 Menyusun pertanyaan...';
         try {
           const res = await fetchWithAuth('/ai/local-context', {
             method: 'POST',
@@ -465,7 +501,6 @@ async function muatMateri(kelasId) {
           });
           const data = await res.json();
           if (res.ok) {
-           document.getElementById('bJalurTeks').value = data.deskripsi;
             document.getElementById('bPertanyaan').value = data.pertanyaan_pemantik;
           } else {
             alert('Gagal: ' + data.message);
@@ -474,7 +509,7 @@ async function muatMateri(kelasId) {
           console.error(err);
           alert('Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🌿 AI Local Context: Isi Otomatis';
+          btn.disabled = false; btn.textContent = '🌿 AI Local Context: Isi Pertanyaan Pemantik';
         }
       });
 
@@ -507,12 +542,12 @@ async function muatMateri(kelasId) {
         }
       });
 
-      // AI Teaching Co-Pilot — panduan eksperimen bahan lokal
+      // AI Teaching Co-Pilot — rancang eksperimen terstruktur (siswa) + panduan guru (khusus guru)
       document.getElementById('btnCopilot').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
         if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
         const btn = document.getElementById('btnCopilot');
-        btn.disabled = true; btn.textContent = '🧪 Menyusun panduan...';
+        btn.disabled = true; btn.textContent = '🧪 Menyusun eksperimen...';
         try {
           const res = await fetchWithAuth('/ai/teaching-copilot', {
             method: 'POST',
@@ -520,9 +555,31 @@ async function muatMateri(kelasId) {
           });
           const data = await res.json();
           if (res.ok) {
-           document.getElementById('teksCopilot').textContent = data.panduan;
+            const teksEksperimen =
+`📌 JUDUL: ${data.judul}
+
+🎯 TUJUAN:
+${data.tujuan}
+
+❓ PERTANYAAN PENGGIRING HIPOTESIS:
+${data.pertanyaan_hipotesis}
+
+🧰 ALAT & BAHAN:
+${data.alat_bahan}
+
+🪜 LANGKAH-LANGKAH:
+${data.langkah_langkah}
+
+📊 PERTANYAAN PENGOLAHAN DATA:
+${data.pertanyaan_pengolahan_data}
+
+🔎 PERTANYAAN PENGGIRING KESIMPULAN:
+${data.pertanyaan_kesimpulan}`;
+
+            document.getElementById('bJalurEksperimen').value = teksEksperimen;
+            document.getElementById('bCatatanGuru').value = data.panduan_guru;
+            document.getElementById('teksCopilot').textContent = data.panduan_guru;
             document.getElementById('boxCopilot').style.display = 'flex';
-            document.getElementById('bJalurEksperimen').value = data.panduan;
           } else {
             alert('Gagal: ' + data.message);
           }
@@ -530,7 +587,7 @@ async function muatMateri(kelasId) {
           console.error(err);
           alert('Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🧪 AI Teaching Co-Pilot';
+          btn.disabled = false; btn.textContent = '🧪 AI Teaching Co-Pilot: Rancang Eksperimen';
         }
       });
 
@@ -546,7 +603,12 @@ async function muatMateri(kelasId) {
         const calonJalur = [
           { tipe_jalur: 'teks', label: '📖 Materi Teks', konten: document.getElementById('bJalurTeks').value.trim() },
           { tipe_jalur: 'video', label: '🎥 Video Simulasi', konten: document.getElementById('bJalurVideo').value.trim() },
-          { tipe_jalur: 'eksperimen', label: '🧪 Eksperimen Mandiri', konten: document.getElementById('bJalurEksperimen').value.trim() }
+          {
+            tipe_jalur: 'eksperimen',
+            label: '🧪 Eksperimen Mandiri',
+            konten: document.getElementById('bJalurEksperimen').value.trim(),
+            catatan_guru: document.getElementById('bCatatanGuru').value.trim() || null
+          }
         ];
         const jalur = calonJalur.filter(j => j.konten.length > 0);
         if (jalur.length < 2) {
@@ -569,6 +631,7 @@ async function muatMateri(kelasId) {
             document.getElementById('bJalurTeks').value = '';
             document.getElementById('bJalurVideo').value = '';
             document.getElementById('bJalurEksperimen').value = '';
+            document.getElementById('bCatatanGuru').value = '';
             document.getElementById('bPertanyaan').value = '';
             document.getElementById('boxValidasi').style.display = 'none';
             document.getElementById('boxCopilot').style.display = 'none';

@@ -2,11 +2,10 @@ const pool = require('../config/db');
 const { ambilKelas, siswaTerdaftarDiKelas, ambilAktivitasDenganKelas } = require('../utils/ownership');
 
 // Fungsi Membuat Aktivitas Baru (Khusus Guru)
-// DIPERBARUI: sekarang mendukung 2-3 varian "jalur belajar" (Autonomous
-// Learning Path) per aktivitas. Guru mengirim array `jalur` berisi
-// {tipe_jalur, label, konten}. Insert aktivitas + jalur dibungkus
-// transaksi supaya tidak ada aktivitas yang "yatim" tanpa jalur kalau
-// salah satu insert gagal di tengah jalan.
+// DIPERBARUI (Bagian 1): jalur eksperimen sekarang bisa membawa
+// catatan_guru (panduan khusus guru, hasil AI Teaching Co-Pilot).
+// Kolom ini ikut disimpan di jalur_aktivitas, terpisah dari `konten`
+// yang dilihat siswa.
 exports.buatAktivitas = async (req, res) => {
   const { kelas_id } = req.params;
   const { judul, deskripsi, template_pedagogis, pertanyaan_pemantik, jalur } = req.body;
@@ -45,8 +44,8 @@ exports.buatAktivitas = async (req, res) => {
     for (let i = 0; i < jalur.length; i++) {
       const j = jalur[i];
       const hasilJalur = await client.query(
-        'INSERT INTO jalur_aktivitas (aktivitas_id, tipe_jalur, label, konten, urutan) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [aktivitasBaru.id, j.tipe_jalur, j.label, j.konten, i]
+        'INSERT INTO jalur_aktivitas (aktivitas_id, tipe_jalur, label, konten, urutan, catatan_guru) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [aktivitasBaru.id, j.tipe_jalur, j.label, j.konten, i, j.catatan_guru || null]
       );
       jalurTersimpan.push(hasilJalur.rows[0]);
     }
@@ -67,9 +66,10 @@ exports.buatAktivitas = async (req, res) => {
 };
 
 // Fungsi Melihat Daftar Aktivitas (Bisa diakses Guru & Siswa)
-// DIPERBARUI: tiap aktivitas sekarang disertai daftar jalur belajarnya
-// (jalur_aktivitas), supaya frontend siswa bisa menampilkan tab
-// Autonomous Learning Path yang sesungguhnya (bukan potongan teks statis).
+// DIPERBARUI (Bagian 1): kalau peran = siswa, kolom catatan_guru
+// DIHAPUS dari setiap jalur sebelum dikirim sebagai response. Ini
+// bukan cuma "disembunyikan di UI" — datanya benar-benar tidak pernah
+// sampai ke browser siswa, jadi tidak bisa dilihat lewat DevTools.
 exports.lihatAktivitas = async (req, res) => {
   const { kelas_id } = req.params;
   const peran = req.user.peran;
@@ -109,7 +109,15 @@ exports.lihatAktivitas = async (req, res) => {
 
     const hasilAkhir = daftarAktivitas.rows.map(akt => ({
       ...akt,
-      jalur: jalurRows.filter(j => j.aktivitas_id === akt.id)
+      jalur: jalurRows
+        .filter(j => j.aktivitas_id === akt.id)
+        .map(j => {
+          if (peran === 'siswa') {
+            const { catatan_guru, ...jalurUntukSiswa } = j;
+            return jalurUntukSiswa;
+          }
+          return j;
+        })
     }));
 
     res.status(200).json(hasilAkhir);
