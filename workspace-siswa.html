@@ -68,6 +68,16 @@
     /* Aktivitas chips */
     .aktivitas-row { display:flex; gap:8px; flex-wrap:wrap; }
     .aktivitas-chip { padding:9px 18px; border-radius:50px; border:2px solid var(--cream-dk); background:var(--white); font-size:0.85rem; font-weight:600; color:var(--text-md); cursor:pointer; transition:var(--trans); font-family:var(--font-body); }
+    /* Panel Materi Pembelajaran (Gap #2 — sisi siswa) */
+.materi-siswa-list { display:flex; flex-direction:column; gap:10px; }
+.materi-siswa-item { background:var(--cream); border-radius:var(--radius-sm); padding:14px 16px; border:1px solid transparent; transition:var(--trans); }
+.materi-siswa-item:hover { border-color:var(--sage-lt); }
+.materi-siswa-item .ms-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.materi-siswa-item .ms-judul { font-weight:700; color:var(--forest); font-size:0.92rem; }
+.materi-siswa-item .ms-tipe { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-lt); background:var(--white); padding:3px 10px; border-radius:50px; }
+.materi-siswa-item .ms-topik { font-size:0.8rem; color:var(--text-lt); margin-top:2px; }
+.ms-dim-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.ms-dim-badge { font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:50px; background:rgba(200,168,75,0.18); color:#8C6820; }
     .aktivitas-chip:hover { border-color:var(--forest); color:var(--forest); }
     .aktivitas-chip.active { background:var(--forest); border-color:var(--forest); color:var(--white); }
 
@@ -181,7 +191,14 @@
         <p class="empty-hint">Kode Kelas didapat dari gurumu. Ini menghubungkanmu ke daftar aktivitas belajar kelas tersebut.</p>
       </div>
     </div>
-
+<!-- PANEL MATERI PEMBELAJARAN (Gap #2) -->
+<div class="panel" id="materiSiswaPanel" style="display:none;">
+  <h3>📚 Materi Pembelajaran Kelas</h3>
+  <p class="empty-hint" style="margin-top:-8px; margin-bottom:12px;">Tiap materi diberi label topik dan dimensi Meaningful Learning Index (MLI) yang sedang kamu latih.</p>
+  <div class="materi-siswa-list" id="daftarMateriSiswa">
+    <div class="empty-hint">Memuat materi...</div>
+  </div>
+</div>
     <!-- PANEL AKTIVITAS (Autonomous Learning Path dimulai di sini) -->
     <div class="panel" id="aktivitasPanel" style="display:none;">
       <h3>Pilih Aktivitas Belajar</h3>
@@ -329,6 +346,7 @@
       localStorage.setItem('kelasIdAktifSiswa', String(kelas.id));
       renderKelasPanel(kelas);
       await muatAktivitas(kelas.id);
+       muatMateriSiswa(kelas.id); // <== Tambahkan ini
     }
 
     async function initKelas() {
@@ -346,6 +364,7 @@
         localStorage.setItem('kelasIdAktifSiswa', String(kelasAktif.id));
         renderKelasPanel(kelasAktif);
         await muatAktivitas(kelasAktif.id);
+         muatMateriSiswa(kelasAktif.id);
       } catch (err) {
         console.error(err);
         document.getElementById('kelasContent').innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Coba muat ulang halaman.</div>';
@@ -383,7 +402,41 @@
         wrap.innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Materi tetap bisa dibuka ulang saat online kembali.</div>';
       }
     }
+// ================= PANEL MATERI PEMBELAJARAN (Gap #2) =================
+const DIMENSI_LABEL_SISWA = {
+  relevansi: '🧭 Relevansi', otonomi: '🕊️ Otonomi', kompetensi: '💪 Kompetensi',
+  keterlibatan: '💬 Keterlibatan', refleksi: '🪞 Refleksi'
+};
 
+async function muatMateriSiswa(kelasId) {
+  const panel = document.getElementById('materiSiswaPanel');
+  const wrap = document.getElementById('daftarMateriSiswa');
+  panel.style.display = 'block';
+  wrap.innerHTML = '<div class="empty-hint">Memuat materi...</div>';
+  try {
+    const res = await fetchWithAuth(`/materi/${kelasId}`);
+    const data = await res.json();
+    if (!res.ok || !Array.isArray(data) || data.length === 0) {
+      wrap.innerHTML = '<div class="empty-hint">📭 Gurumu belum mengunggah materi tambahan untuk kelas ini.</div>';
+      return;
+    }
+    wrap.innerHTML = data.map(m => `
+      <div class="materi-siswa-item">
+        <div class="ms-head">
+          <span class="ms-judul">${m.judul}</span>
+          <span class="ms-tipe">${m.tipe_materi}</span>
+        </div>
+        <div class="ms-topik">Topik: ${m.topik_fisika}</div>
+        <div class="ms-dim-row">
+          ${(m.dimensi_disasar || []).map(d => `<span class="ms-dim-badge">${DIMENSI_LABEL_SISWA[d] || d}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+    wrap.innerHTML = '<div class="empty-hint">🔌 Gagal memuat materi. Coba lagi saat online.</div>';
+  }
+}
     // ================= 3. PANEL MATERI + JALUR OTONOM =================
     function pilihAktivitas(akt) {
       aktivitasTerpilih = akt;
