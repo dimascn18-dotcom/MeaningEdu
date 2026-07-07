@@ -16,11 +16,13 @@ const aktivitasRoutes = require('./routes/aktivitasRoutes');
 const jurnalRoutes = require('./routes/jurnalRoutes');
 const mliRoutes = require('./routes/mliRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const materiRoutes = require('./routes/materiRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/kelas', kelasRoutes); // <== Tambahkan ini
 app.use('/aktivitas', aktivitasRoutes); // <== Tambahkan ini
 app.use('/jurnal', jurnalRoutes); // <== Tambahkan ini
+app.use('/materi', materiRoutes); // <== Tambahkan ini
 app.use('/mli', mliRoutes); // <== Tambahkan ini
 app.use('/ai', aiRoutes); // <== Tambahkan ini
 // ----------------

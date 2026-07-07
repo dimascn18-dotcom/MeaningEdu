@@ -61,6 +61,17 @@
 
     /* Meaningful Activity Builder */
     .builder-panel { border:1px solid var(--sage-lt); background:linear-gradient(160deg,#F3F9F5,var(--white)); }
+    .materi-manager-panel { border:1px solid var(--gold-lt); background:linear-gradient(160deg,#FDF8ED,var(--white)); }
+.dimensi-check-row { display:flex; flex-wrap:wrap; gap:10px; margin:8px 0 14px; }
+.dimensi-check-item { display:flex; align-items:center; gap:6px; background:var(--cream); border:2px solid var(--cream-dk); border-radius:50px; padding:6px 14px; font-size:0.8rem; font-weight:600; color:var(--text-md); cursor:pointer; }
+.dimensi-check-item input { accent-color: var(--forest); }
+.materi-list { margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+.materi-item { background:var(--cream); border-radius:var(--radius-sm); padding:12px 16px; }
+.materi-item .m-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.materi-item .m-judul { font-weight:700; color:var(--forest); font-size:0.9rem; }
+.materi-item .m-topik { font-size:0.76rem; color:var(--text-lt); }
+.dim-badge-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.dim-badge { font-size:0.68rem; font-weight:700; padding:3px 10px; border-radius:50px; background:rgba(26,58,42,0.10); color:var(--forest); text-transform:uppercase; letter-spacing:0.02em; }
     .builder-tools { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 14px; }
     .ai-tool-btn {
       display:flex; align-items:center; gap:6px; background:var(--white); border:2px solid var(--cream-dk); border-radius:50px;
@@ -157,6 +168,45 @@
 
       <!-- Kolom kanan: activity builder + aktivitas + MLI -->
       <section>
+        <!-- SIMPLE CLASS & MATERIAL MANAGER (Gap #2) -->
+<div class="panel materi-manager-panel" id="materiManagerPanel" style="display:none;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <h3 style="margin-bottom:0;">📚 Simple Class & Material Manager</h3>
+    <button class="link-btn" id="toggleMateriForm">+ Unggah Materi Baru</button>
+  </div>
+  <p style="font-size:0.8rem; color:var(--text-lt); margin:8px 0 0;">Label topik &amp; dimensi MLI membantu Anda — terutama guru lintas bidang — tahu aspek psikologis apa yang sedang dilatih lewat materi ini.</p>
+
+  <div class="form-mini" id="formMateri" style="display:none;">
+    <label>Judul Materi</label>
+    <input type="text" id="mJudul" placeholder="mis. Video: Tekanan Hidrostatis pada Sumur Desa" />
+
+    <label>Topik Fisika</label>
+    <input type="text" id="mTopik" placeholder="mis. Tekanan Hidrostatis" />
+
+    <label>Jenis Materi</label>
+    <select id="mTipe">
+      <option value="teks">📖 Teks</option>
+      <option value="video">🎥 Video</option>
+      <option value="tautan">🔗 Tautan/Link</option>
+    </select>
+
+    <label>Isi / Tautan Materi</label>
+    <textarea id="mKonten" rows="3" placeholder="Tulis isi materi, atau tempel link video/tautan..."></textarea>
+
+    <label>Dimensi MLI yang Disasar (pilih minimal 1)</label>
+    <div class="dimensi-check-row">
+      <label class="dimensi-check-item"><input type="checkbox" value="relevansi" /> 🧭 Relevansi</label>
+      <label class="dimensi-check-item"><input type="checkbox" value="otonomi" /> 🕊️ Otonomi</label>
+      <label class="dimensi-check-item"><input type="checkbox" value="kompetensi" /> 💪 Kompetensi</label>
+      <label class="dimensi-check-item"><input type="checkbox" value="keterlibatan" /> 💬 Keterlibatan</label>
+      <label class="dimensi-check-item"><input type="checkbox" value="refleksi" /> 🪞 Refleksi</label>
+    </div>
+
+    <button class="btn-submit-mini" id="btnSimpanMateri">Simpan Materi</button>
+  </div>
+
+  <div class="materi-list" id="daftarMateri"></div>
+</div>
         <!-- MEANINGFUL ACTIVITY BUILDER -->
         <div class="panel builder-panel" id="builderPanel" style="display:none;">
           <h3>🛠️ Meaningful Activity Builder</h3>
@@ -227,6 +277,82 @@
 
   <script src="app.js"></script>
   <script>
+    // ================= SIMPLE CLASS & MATERIAL MANAGER (Gap #2) =================
+const DIMENSI_LABEL_MAP = {
+  relevansi: '🧭 Relevansi', otonomi: '🕊️ Otonomi', kompetensi: '💪 Kompetensi',
+  keterlibatan: '💬 Keterlibatan', refleksi: '🪞 Refleksi'
+};
+
+document.getElementById('toggleMateriForm').addEventListener('click', () => {
+  const form = document.getElementById('formMateri');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('btnSimpanMateri').addEventListener('click', async () => {
+  if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
+  const judul = document.getElementById('mJudul').value.trim();
+  const topik_fisika = document.getElementById('mTopik').value.trim();
+  const tipe_materi = document.getElementById('mTipe').value;
+  const konten = document.getElementById('mKonten').value.trim();
+  const dimensi_disasar = Array.from(document.querySelectorAll('.dimensi-check-item input:checked')).map(i => i.value);
+
+  if (!judul || !topik_fisika) { alert('Judul dan topik Fisika wajib diisi.'); return; }
+  if (dimensi_disasar.length === 0) { alert('Pilih minimal 1 dimensi MLI yang disasar materi ini.'); return; }
+
+  const btn = document.getElementById('btnSimpanMateri');
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try {
+    const res = await fetchWithAuth(`/materi/${kelasAktifId}`, {
+      method: 'POST',
+      body: JSON.stringify({ judul, topik_fisika, tipe_materi, konten, dimensi_disasar })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('mJudul').value = '';
+      document.getElementById('mTopik').value = '';
+      document.getElementById('mKonten').value = '';
+      document.querySelectorAll('.dimensi-check-item input').forEach(i => i.checked = false);
+      document.getElementById('formMateri').style.display = 'none';
+      muatMateri(kelasAktifId);
+    } else {
+      alert('Gagal: ' + data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Terjadi kesalahan koneksi ke server.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Simpan Materi';
+  }
+});
+
+async function muatMateri(kelasId) {
+  document.getElementById('materiManagerPanel').style.display = 'block';
+  const wrap = document.getElementById('daftarMateri');
+  wrap.innerHTML = '<div class="empty-hint">Memuat materi...</div>';
+  try {
+    const res = await fetchWithAuth(`/materi/${kelasId}`);
+    const data = await res.json();
+    if (!res.ok || !Array.isArray(data) || data.length === 0) {
+      wrap.innerHTML = '<div class="empty-hint">Belum ada materi diunggah untuk kelas ini.</div>';
+      return;
+    }
+    wrap.innerHTML = data.map(m => `
+      <div class="materi-item">
+        <div class="m-head">
+          <span class="m-judul">${m.judul}</span>
+          <span class="m-topik">${m.tipe_materi}</span>
+        </div>
+        <div class="m-topik">Topik: ${m.topik_fisika}</div>
+        <div class="dim-badge-row">
+          ${(m.dimensi_disasar || []).map(d => `<span class="dim-badge">${DIMENSI_LABEL_MAP[d] || d}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+    wrap.innerHTML = '<div class="empty-hint">🔌 Gagal memuat materi.</div>';
+  }
+}
     (function () {
       const userRaw = localStorage.getItem('user');
       const user = userRaw ? JSON.parse(userRaw) : null;
@@ -652,6 +778,7 @@
       async function muatAktivitas(kelasId) {
         kelasAktifId = kelasId;
         muatTren(kelasId);
+        muatMateri(kelasId);
         document.getElementById('toggleBuilder').style.display = 'inline-flex';
 
         const wrap = document.getElementById('daftarAktivitas');
