@@ -29,6 +29,9 @@ const pool = require('../config/db');
 require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Sama seperti aiController.js — gemini-2.0-flash sudah dimatikan Google
+// 1 Juni 2026. Model ini pensiun lagi ~16 Okt 2026, ingat untuk diganti.
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // ---------------------------------------------------------------
 // 0) RINGKASAN LOG PILIHAN JALUR (Autonomous Learning Path)
@@ -188,7 +191,7 @@ function skorRuleBased({ jawaban_awal, jawaban_lanjutan, durasi_belajar, ringkas
 
 async function skorViaGemini({ topik_fisika, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, ringkasanJalur }) {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: GEMINI_MODEL,
     systemInstruction: `Kamu adalah mesin penilai (NLP scoring engine) untuk platform edukasi MeaningEdu.
 Bacalah jurnal refleksi siswa tentang topik Fisika (dan data eksplorasi jalur belajarnya jika tersedia), lalu beri skor 0-100 untuk 5 dimensi berikut:
 
