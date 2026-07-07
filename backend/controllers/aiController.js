@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
+const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ============================================================
@@ -288,19 +289,35 @@ exports.generateMateri = async (req, res) => {
     : 'relevansi, keterlibatan';
 
   try {
-    const model = getModel(`Kamu adalah AI Co-Pilot penyusun materi untuk platform MeaningEdu, membantu guru
-      (termasuk guru non-Fisika/out-of-field) di wilayah 3T menyiapkan materi ajar Fisika dengan cepat.
-      Berdasarkan topik Fisika, jenis materi, wilayah sekolah, dan dimensi MLI yang disasar, buat SATU paket
-      berisi DUA bagian dalam satu field "konten":
-      (a) materi ajar Bahasa Indonesia, jelas dan ringkas (3-5 paragraf pendek), mengaitkan konsep Fisika
-          dengan kehidupan/lingkungan lokal wilayah sekolah tersebut;
-      (b) di baris baru setelahnya, bagian berjudul persis "🧪 Saran Eksperimen Sederhana:" berisi 3-5 langkah
-          eksperimen bernomor, HANYA memakai bahan yang mudah ditemukan di desa/pesisir (botol bekas, bambu,
-          batu, tali, air, dsb), bahasa tidak teknis, cocok untuk guru yang bukan lulusan Fisika dan tanpa
-          laboratorium standar.
-      Buat juga "judul" materi yang menarik & kontekstual (maks 10 kata).
-      WAJIB balas HANYA dalam format JSON valid tanpa markdown, tanpa backtick, struktur persis:
-      {"judul": "...", "konten": "..."}`);
+    // PENTING: pakai structured output Gemini (responseSchema) alih-alih
+    // extractJSON via regex. Kalau tidak, teks panjang multi-paragraf yang
+    // mengandung baris baru mentah sering membuat JSON.parse() gagal —
+    // itu penyebab paling mungkin di balik pesan "mode cadangan" kemarin.
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: `Kamu adalah AI Co-Pilot penyusun materi untuk platform MeaningEdu, membantu guru
+        (termasuk guru non-Fisika/out-of-field) di wilayah 3T menyiapkan materi ajar Fisika dengan cepat.
+        Berdasarkan topik Fisika, jenis materi, wilayah sekolah, dan dimensi MLI yang disasar, buat SATU paket
+        berisi DUA bagian dalam satu field "konten":
+        (a) materi ajar Bahasa Indonesia, jelas dan ringkas (3-5 paragraf pendek), mengaitkan konsep Fisika
+            dengan kehidupan/lingkungan lokal wilayah sekolah tersebut;
+        (b) di baris baru setelahnya, bagian berjudul persis "🧪 Saran Eksperimen Sederhana:" berisi 3-5 langkah
+            eksperimen bernomor, HANYA memakai bahan yang mudah ditemukan di desa/pesisir (botol bekas, bambu,
+            batu, tali, air, dsb), bahasa tidak teknis, cocok untuk guru yang bukan lulusan Fisika dan tanpa
+            laboratorium standar.
+        Buat juga "judul" materi yang menarik & kontekstual (maks 10 kata).`,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            judul: { type: SchemaType.STRING },
+            konten: { type: SchemaType.STRING }
+          },
+          required: ['judul', 'konten']
+        }
+      }
+    });
 
     const prompt = `Topik Fisika: ${topik_fisika}
 Jenis materi: ${tipe_materi || 'teks'}
@@ -309,7 +326,7 @@ Dimensi MLI yang disasar: ${daftarDimensi}`;
 
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
-    const parsed = extractJSON(text);
+    const parsed = JSON.parse(text); // aman sekarang karena responseSchema menjamin JSON valid
 
     return res.status(200).json({ judul: parsed.judul, konten: parsed.konten, source: "gemini-live" });
   } catch (error) {
@@ -328,5 +345,67 @@ Diskusikan bersama siswa: bagaimana prinsip ini muncul dalam alat, kebiasaan, at
 
 (Catatan: draf ini dibuat mode cadangan karena AI utama sedang tidak bisa diakses. Silakan sesuaikan dulu sebelum dipublikasikan ke siswa.)`;
     return res.status(200).json({ judul: judulCadangan, konten: kontenCadangan, source: "local-fallback-mode" });
+  }
+};
+
+// ================= 8. AI Metacognitive Scaffold — Jurnal Refleksi Tahap 3 (Siswa) =================
+// Menghasilkan 2 pertanyaan pemandu SPESIFIK-TOPIK untuk tahap akhir jurnal,
+// menyasar 2 indikator Refleksi Metakognitif (Flavell) yang selama ini belum
+// ditanyakan eksplisit: identifikasi kesenjangan pengetahuan & formulasi
+// strategi perbaikan. Dipanggil SEKALI di akhir alur jurnal (bukan per
+// keystroke), dan pakai responseSchema supaya tidak gagal parse seperti
+// masalah generateMateri sebelumnya.
+exports.metakognisiScaffold = async (req, res) => {
+  const { topik_fisika, jawaban_awal, jawaban_lanjutan } = req.body;
+
+  if (!topik_fisika) {
+    return res.status(400).json({ message: 'Topik Fisika wajib disertakan.' });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: `Kamu adalah AI Reflection Companion untuk platform MeaningEdu.
+        Berdasarkan topik Fisika dan refleksi siswa sejauh ini, buat TEPAT 2 pertanyaan pemandu
+        singkat dalam Bahasa Indonesia yang sederhana dan empatik, untuk tahap akhir jurnal refleksi:
+        1) "pertanyaan_kesenjangan": pertanyaan yang mengajak siswa mengidentifikasi bagian topik ini
+           yang MASIH membingungkan atau belum ia pahami sepenuhnya.
+        2) "pertanyaan_strategi": pertanyaan yang mengajak siswa merumuskan langkah/strategi konkret
+           yang akan ia lakukan untuk memperbaiki pemahamannya ke depan.
+        Pertanyaan harus spesifik menyebut topik Fisika terkait (bukan generik), dan ramah untuk siswa
+        di wilayah 3T — bahasa sederhana, tidak menghakimi.`,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            pertanyaan_kesenjangan: { type: SchemaType.STRING },
+            pertanyaan_strategi: { type: SchemaType.STRING }
+          },
+          required: ['pertanyaan_kesenjangan', 'pertanyaan_strategi']
+        }
+      }
+    });
+
+    const prompt = `Topik Fisika: ${topik_fisika}
+Jawaban awal siswa: "${jawaban_awal || ''}"
+Refleksi lanjutan siswa: "${jawaban_lanjutan || ''}"`;
+
+    const result = await model.generateContent(prompt);
+    const text = (await result.response).text();
+    const parsed = JSON.parse(text);
+
+    return res.status(200).json({
+      pertanyaan_kesenjangan: parsed.pertanyaan_kesenjangan,
+      pertanyaan_strategi: parsed.pertanyaan_strategi,
+      source: "gemini-live"
+    });
+  } catch (error) {
+    console.warn("⚠️ Gemini API Error (metakognisi-scaffold). Mode cadangan aktif:", error.message);
+    return res.status(200).json({
+      pertanyaan_kesenjangan: `Dari topik "${topik_fisika}" ini, bagian mana yang menurutmu masih paling membingungkan?`,
+      pertanyaan_strategi: `Apa yang akan kamu lakukan minggu depan supaya bagian itu lebih kamu pahami?`,
+      source: "local-fallback-mode"
+    });
   }
 };

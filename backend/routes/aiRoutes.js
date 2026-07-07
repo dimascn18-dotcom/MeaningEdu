@@ -8,7 +8,8 @@ const {
   generateLocalContext,
   teachingCopilot,
   pedagogicalAdvisor,
-  generateMateri
+  generateMateri,
+  metakognisiScaffold
 } = require('../controllers/aiController');
 
 // --- Fitur Siswa ---
@@ -28,5 +29,7 @@ router.post('/teaching-copilot', auth, teachingCopilot);
 router.post('/pedagogical-advisor', auth, pedagogicalAdvisor);
 // AI Generate Materi + Saran Eksperimen (Simple Class & Material Manager)
 router.post('/generate-materi', auth, generateMateri);
+// AI Metacognitive Scaffold (Jurnal Refleksi Tahap 3 — Siswa)
+router.post('/metakognisi-scaffold', auth, metakognisiScaffold);
 
 module.exports = router;

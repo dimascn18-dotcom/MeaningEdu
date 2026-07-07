@@ -238,10 +238,12 @@
       </div>
 
       <div id="jurnalUnlocked" style="display:none;">
-        <div class="step-track">
+       <div class="step-track">
           <div class="step-dot active" id="stepDot1">1</div>
           <div class="step-line"></div>
           <div class="step-dot" id="stepDot2">2</div>
+          <div class="step-line"></div>
+          <div class="step-dot" id="stepDot3">3</div>
         </div>
 
         <div id="tahap-1">
@@ -261,6 +263,24 @@
 
           <label class="q-label">Refleksi Lanjutanmu:</label>
           <textarea id="jawabanLanjutan" rows="3" placeholder="Hubungkan dengan pertanyaan AI di atas..."></textarea>
+          <button id="btnLanjutTahap3">Lanjut ke Refleksi Akhir</button>
+        </div>
+
+        <div id="tahap-3" style="display: none; margin-top: 10px;">
+          <div class="ai-bubble">
+            <span class="avatar">🪞</span>
+            <div>
+              <strong>Refleksi Akhir</strong>
+              <p>Dua pertanyaan terakhir ini membantumu menyadari sejauh mana pemahamanmu — dan apa langkah selanjutnya.</p>
+            </div>
+          </div>
+
+          <label class="q-label" id="labelKesenjangan">Menyiapkan pertanyaan...</label>
+          <textarea id="jawabanKesenjangan" rows="2" placeholder="Tuliskan bagian yang masih kamu bingungkan..."></textarea>
+
+          <label class="q-label" id="labelStrategi" style="margin-top:14px;">Menyiapkan pertanyaan...</label>
+          <textarea id="jawabanStrategi" rows="2" placeholder="Tuliskan rencana/strategimu..."></textarea>
+
           <button id="btnSimpanJurnal">Simpan Jurnal Akhir</button>
         </div>
       </div>
@@ -546,12 +566,14 @@ async function muatMateriSiswa(kelasId) {
       this.classList.toggle('active');
     });
 
+   // DIPERBAIKI: dulu hanya membesarkan #materiContent saja. Sekarang mengubah
+    // ukuran font ROOT (<html>) — otomatis membesarkan SEMUA teks di halaman
+    // (label jurnal, tombol, materi, dst) karena seluruh ukuran teks di
+    // style.css memakai satuan rem (relatif ke root), bukan px tetap.
     let ukuranFont = 0; // 0 normal, 1 besar, 2 sangat besar
+    const SKALA_FONT = { 0: '16px', 1: '18px', 2: '21px' };
     function terapkanUkuranFont() {
-      const el = document.getElementById('materiContent');
-      el.classList.remove('font-lg', 'font-xl');
-      if (ukuranFont === 1) el.classList.add('font-lg');
-      if (ukuranFont === 2) el.classList.add('font-xl');
+      document.documentElement.style.fontSize = SKALA_FONT[ukuranFont];
     }
     document.getElementById('btnFontBesar').addEventListener('click', () => { ukuranFont = Math.min(2, ukuranFont + 1); terapkanUkuranFont(); });
     document.getElementById('btnFontKecil').addEventListener('click', () => { ukuranFont = Math.max(0, ukuranFont - 1); terapkanUkuranFont(); });
@@ -564,9 +586,13 @@ async function muatMateriSiswa(kelasId) {
       // Reset ke tahap 1 setiap ganti aktivitas
       document.getElementById('tahap-1').style.display = 'block';
       document.getElementById('tahap-2').style.display = 'none';
+      document.getElementById('tahap-3').style.display = 'none';
       document.getElementById('jawabanAwal').value = '';
       document.getElementById('jawabanLanjutan').value = '';
+      document.getElementById('jawabanKesenjangan').value = '';
+      document.getElementById('jawabanStrategi').value = '';
       document.getElementById('stepDot2').classList.remove('active');
+      document.getElementById('stepDot3').classList.remove('active');
     }
 
     let dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '' };
@@ -647,15 +673,65 @@ async function muatMateriSiswa(kelasId) {
       }
     }
 
+    document.getElementById('btnLanjutTahap3').addEventListener('click', async () => {
+      const jawabanLanjutanVal = document.getElementById('jawabanLanjutan').value;
+      if (!jawabanLanjutanVal) { alert('Tuliskan refleksi lanjutanmu dulu!'); return; }
+      dataJurnalSementara.jawaban_lanjutan = jawabanLanjutanVal;
+
+      const btnLanjut = document.getElementById('btnLanjutTahap3');
+      btnLanjut.textContent = 'AI sedang menyiapkan refleksi akhir...';
+      btnLanjut.disabled = true;
+
+      try {
+        const response = await fetchWithAuth('/ai/metakognisi-scaffold', {
+          method: 'POST',
+          body: JSON.stringify({
+            topik_fisika: aktivitasTerpilih.judul,
+            jawaban_awal: dataJurnalSementara.jawaban_awal,
+            jawaban_lanjutan: jawabanLanjutanVal
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          document.getElementById('labelKesenjangan').textContent = data.pertanyaan_kesenjangan;
+          document.getElementById('labelStrategi').textContent = data.pertanyaan_strategi;
+          document.getElementById('tahap-2').style.display = 'none';
+          document.getElementById('tahap-3').style.display = 'block';
+          document.getElementById('stepDot3').classList.add('active');
+        } else {
+          alert('Gagal memuat pertanyaan refleksi akhir: ' + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Koneksi ke AI terputus. Coba lagi.');
+      } finally {
+        btnLanjut.textContent = 'Lanjut ke Refleksi Akhir';
+        btnLanjut.disabled = false;
+      }
+    });
+
     document.getElementById('btnSimpanJurnal').addEventListener('click', async () => {
       if (!aktivitasTerpilih) return;
-      const jawabanLanjutan = document.getElementById('jawabanLanjutan').value;
-      if (!jawabanLanjutan) { alert('Tuliskan refleksi lanjutanmu!'); return; }
+      const jawabanKesenjangan = document.getElementById('jawabanKesenjangan').value.trim();
+      const jawabanStrategi = document.getElementById('jawabanStrategi').value.trim();
+      if (!jawabanKesenjangan || !jawabanStrategi) { alert('Jawab dulu kedua pertanyaan refleksi akhir ini ya!'); return; }
 
       const btn = document.getElementById('btnSimpanJurnal');
       btn.textContent = 'Menyimpan...';
       btn.disabled = true;
-      dataJurnalSementara.jawaban_lanjutan = jawabanLanjutan;
+
+      // Gabungkan refleksi lanjutan (tahap 2) + scaffold metakognisi (tahap 3) jadi
+      // satu teks jawaban_lanjutan — tidak perlu migrasi kolom baru, NLP Scoring
+      // Engine tetap membaca ini sebagai satu kesatuan teks refleksi.
+      const labelKesenjangan = document.getElementById('labelKesenjangan').textContent;
+      const labelStrategi = document.getElementById('labelStrategi').textContent;
+      dataJurnalSementara.jawaban_lanjutan = `${dataJurnalSementara.jawaban_lanjutan}
+
+${labelKesenjangan}
+${jawabanKesenjangan}
+
+${labelStrategi}
+${jawabanStrategi}`;
 
       const durasiDetik = waktuMulaiBelajar ? Math.round((Date.now() - waktuMulaiBelajar) / 1000) : 0;
 
