@@ -8,8 +8,7 @@ const {
   generateLocalContext,
   teachingCopilot,
   pedagogicalAdvisor,
-  generateMateri,
-  metakognisiScaffold
+  generateMateriTeks
 } = require('../controllers/aiController');
 
 // --- Fitur Siswa ---
@@ -21,15 +20,13 @@ router.post('/simplify', auth, simplifyContent);
 // --- Fitur Guru ---
 // Validasi AI pada Meaningful Activity Builder
 router.post('/validate-activity', auth, validateActivity);
-// AI Local Context & SDG Project Builder
+// AI Local Context Generator (sekarang: pengisi Pertanyaan Pemantik)
 router.post('/local-context', auth, generateLocalContext);
-// AI Teaching Co-Pilot Manual
+// AI Teaching Co-Pilot Manual (sekarang: rancang eksperimen terstruktur + panduan guru)
 router.post('/teaching-copilot', auth, teachingCopilot);
 // AI Pedagogical Advisor Alert (MLI Dashboard)
 router.post('/pedagogical-advisor', auth, pedagogicalAdvisor);
-// AI Generate Materi + Saran Eksperimen (Simple Class & Material Manager)
-router.post('/generate-materi', auth, generateMateri);
-// AI Metacognitive Scaffold (Jurnal Refleksi Tahap 3 — Siswa)
-router.post('/metakognisi-scaffold', auth, metakognisiScaffold);
+// BARU (Bagian 1): AI Materi Generator — pengisi Jalur 1 (Materi Teks)
+router.post('/generate-materi', auth, generateMateriTeks);
 
 module.exports = router;
