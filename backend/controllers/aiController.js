@@ -264,6 +264,69 @@ Refleksi Metakognitif: ${dimensi.refleksi}`;
     const saranCadangan = `1. Dimensi "${namaLabel[terlemah[0]] || terlemah[0]}" paling rendah (${terlemah[1]}) — mulai kelas berikutnya dengan contoh nyata dari lingkungan siswa.
 2. Beri kesempatan siswa memilih cara menyelesaikan tugas agar rasa memiliki kendali meningkat.
 3. Ajukan pertanyaan reflektif singkat di akhir kelas untuk menguatkan kebiasaan metakognisi.`;
-    return res.status(200).json({ saran: saranCadangan, source: "local-fallback-mode" });
+   return res.status(200).json({ saran: saranCadangan, source: "local-fallback-mode" });
+  }
+};
+
+// ================= 7. AI Generate Materi + Saran Eksperimen (Guru) =================
+// SATU panggilan Gemini menghasilkan draf materi ajar SEKALIGUS saran eksperimen
+// sederhana, digabung jadi satu teks "konten". Sengaja digabung (bukan 2 panggilan
+// terpisah) supaya hemat kuota token gratis dan lebih cepat untuk guru.
+exports.generateMateri = async (req, res) => {
+  const { topik_fisika, tipe_materi, dimensi_disasar, wilayah_sekolah } = req.body;
+  const peran = req.user.peran;
+
+  if (peran !== 'guru') {
+    return res.status(403).json({ message: 'Akses ditolak! Hanya guru yang dapat menggunakan fitur ini.' });
+  }
+  if (!topik_fisika || !topik_fisika.trim()) {
+    return res.status(400).json({ message: 'Isi Topik Fisika terlebih dahulu sebelum generate materi.' });
+  }
+
+  const daftarDimensi = Array.isArray(dimensi_disasar) && dimensi_disasar.length > 0
+    ? dimensi_disasar.join(', ')
+    : 'relevansi, keterlibatan';
+
+  try {
+    const model = getModel(`Kamu adalah AI Co-Pilot penyusun materi untuk platform MeaningEdu, membantu guru
+      (termasuk guru non-Fisika/out-of-field) di wilayah 3T menyiapkan materi ajar Fisika dengan cepat.
+      Berdasarkan topik Fisika, jenis materi, wilayah sekolah, dan dimensi MLI yang disasar, buat SATU paket
+      berisi DUA bagian dalam satu field "konten":
+      (a) materi ajar Bahasa Indonesia, jelas dan ringkas (3-5 paragraf pendek), mengaitkan konsep Fisika
+          dengan kehidupan/lingkungan lokal wilayah sekolah tersebut;
+      (b) di baris baru setelahnya, bagian berjudul persis "🧪 Saran Eksperimen Sederhana:" berisi 3-5 langkah
+          eksperimen bernomor, HANYA memakai bahan yang mudah ditemukan di desa/pesisir (botol bekas, bambu,
+          batu, tali, air, dsb), bahasa tidak teknis, cocok untuk guru yang bukan lulusan Fisika dan tanpa
+          laboratorium standar.
+      Buat juga "judul" materi yang menarik & kontekstual (maks 10 kata).
+      WAJIB balas HANYA dalam format JSON valid tanpa markdown, tanpa backtick, struktur persis:
+      {"judul": "...", "konten": "..."}`);
+
+    const prompt = `Topik Fisika: ${topik_fisika}
+Jenis materi: ${tipe_materi || 'teks'}
+Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}
+Dimensi MLI yang disasar: ${daftarDimensi}`;
+
+    const result = await model.generateContent(prompt);
+    const text = (await result.response).text();
+    const parsed = extractJSON(text);
+
+    return res.status(200).json({ judul: parsed.judul, konten: parsed.konten, source: "gemini-live" });
+  } catch (error) {
+    console.warn("⚠️ Gemini API Error (generate-materi). Mode cadangan aktif:", error.message);
+    const judulCadangan = `${topik_fisika} di Kehidupan Sekitar Kita`;
+    const kontenCadangan = `Konsep "${topik_fisika}" bisa ditemukan dalam kegiatan sehari-hari di wilayah ${wilayah_sekolah || 'sekitar sekolah'}. Ajak siswa mengamati contoh nyata di lingkungan mereka sebelum masuk ke penjelasan teori, supaya konsep ini terasa dekat dan relevan.
+
+Diskusikan bersama siswa: bagaimana prinsip ini muncul dalam alat, kebiasaan, atau pekerjaan yang mereka kenal sehari-hari?
+
+🧪 Saran Eksperimen Sederhana:
+1. Siapkan botol bekas, air, dan bahan sederhana lain yang tersedia di sekitar sekolah.
+2. Ajak siswa melakukan pengamatan langsung terkait "${topik_fisika}" memakai bahan tersebut.
+3. Catat hasil pengamatan bersama-sama di papan tulis.
+4. Diskusikan mengapa hasilnya seperti itu, kaitkan dengan konsep "${topik_fisika}".
+5. Tutup dengan pertanyaan reflektif: apa hal baru yang siswa sadari dari eksperimen ini?
+
+(Catatan: draf ini dibuat mode cadangan karena AI utama sedang tidak bisa diakses. Silakan sesuaikan dulu sebelum dipublikasikan ke siswa.)`;
+    return res.status(200).json({ judul: judulCadangan, konten: kontenCadangan, source: "local-fallback-mode" });
   }
 };

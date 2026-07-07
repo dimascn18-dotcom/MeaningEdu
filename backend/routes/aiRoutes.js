@@ -7,7 +7,8 @@ const {
   validateActivity,
   generateLocalContext,
   teachingCopilot,
-  pedagogicalAdvisor
+  pedagogicalAdvisor,
+  generateMateri
 } = require('../controllers/aiController');
 
 // --- Fitur Siswa ---
@@ -25,5 +26,7 @@ router.post('/local-context', auth, generateLocalContext);
 router.post('/teaching-copilot', auth, teachingCopilot);
 // AI Pedagogical Advisor Alert (MLI Dashboard)
 router.post('/pedagogical-advisor', auth, pedagogicalAdvisor);
+// AI Generate Materi + Saran Eksperimen (Simple Class & Material Manager)
+router.post('/generate-materi', auth, generateMateri);
 
 module.exports = router;

@@ -183,6 +183,9 @@
     <label>Topik Fisika</label>
     <input type="text" id="mTopik" placeholder="mis. Tekanan Hidrostatis" />
 
+    <button type="button" class="ai-tool-btn" id="btnGenerateMateri" style="margin:4px 0 12px;">✨ Generate Materi + Eksperimen dengan AI</button>
+    <p style="font-size:0.76rem;color:var(--text-lt);margin:-8px 0 12px;">Isi Topik Fisika & centang dimensi dulu, lalu klik tombol ini. Hasil AI tetap bisa Anda edit sebelum disimpan.</p>
+
     <label>Jenis Materi</label>
     <select id="mTipe">
       <option value="teks">📖 Teks</option>
@@ -302,6 +305,37 @@ document.getElementById('toggleMateriForm').addEventListener('click', () => {
   form.style.display = form.style.display === 'none' ? 'block' : 'none';
 });
 
+document.getElementById('btnGenerateMateri').addEventListener('click', async () => {
+  const topik_fisika = document.getElementById('mTopik').value.trim();
+  const tipe_materi = document.getElementById('mTipe').value;
+  const dimensi_disasar = Array.from(document.querySelectorAll('.dimensi-check-item input:checked')).map(i => i.value);
+
+  if (!topik_fisika) { alert('Isi Topik Fisika terlebih dahulu.'); return; }
+
+  const btn = document.getElementById('btnGenerateMateri');
+  btn.disabled = true; btn.textContent = '✨ AI sedang menyusun materi...';
+  try {
+    const res = await fetchWithAuth('/ai/generate-materi', {
+      method: 'POST',
+      body: JSON.stringify({ topik_fisika, tipe_materi, dimensi_disasar, wilayah_sekolah: user.wilayah_sekolah })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('mJudul').value = data.judul || '';
+      document.getElementById('mKonten').value = data.konten || '';
+      if (data.source === 'local-fallback-mode') {
+        alert('AI utama sedang tidak bisa diakses — draf ini dibuat mode cadangan. Silakan periksa & sesuaikan sebelum disimpan.');
+      }
+    } else {
+      alert('Gagal generate: ' + data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Koneksi ke AI terputus.');
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ Generate Materi + Eksperimen dengan AI';
+  }
+});
 document.getElementById('btnSimpanMateri').addEventListener('click', async () => {
   if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
   const judul = document.getElementById('mJudul').value.trim();
