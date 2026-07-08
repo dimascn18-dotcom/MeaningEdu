@@ -562,7 +562,12 @@ async function muatMateri(kelasId) {
         try {
           const res = await fetchWithAuth('/ai/teaching-copilot', {
             method: 'POST',
-            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah })
+            body: JSON.stringify({
+              topik_fisika: judul,
+              wilayah_sekolah: user.wilayah_sekolah,
+              template_pedagogis: document.getElementById('bTemplate').value,
+              konteks_materi: document.getElementById('bJalurTeks').value.trim()
+            })
           });
           const data = await res.json();
           if (res.ok) {

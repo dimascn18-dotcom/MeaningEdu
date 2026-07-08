@@ -183,9 +183,32 @@ exports.generateLocalContext = async (req, res) => {
 // Pengolahan Data, Pertanyaan Kesimpulan) — TERLIHAT oleh siswa —
 // ditambah "panduan_guru" yang TIDAK PERNAH dikirim ke siswa (disaring
 // di aktivitasController.lihatAktivitas berdasarkan peran).
-// DIPERBARUI: pakai structured output (responseSchema).
+//
+// BAGIAN 3 — sebelumnya hasil eksperimen (live MAUPUN mode cadangan)
+// cenderung generik: prompt lama mencantumkan SATU daftar bahan tetap
+// ("botol bekas, bambu, batu, tali, air") untuk SEMUA topik, sehingga
+// Gemini condong selalu balik ke skema "isi botol, lubangi, amati
+// semburan air" walau topiknya tidak berhubungan dengan fluida. Mode
+// cadangan malah 100% statis (bahan botol-air yang sama persis untuk
+// topik apa pun). Perbaikan di sini:
+//   1. Jangkar bahan tetap dihapus dari prompt, diganti instruksi wajib
+//      memilih bahan yang relevan SECARA FISIS dengan topik spesifik,
+//      dengan beberapa contoh KATEGORI (bukan satu jangkar tunggal) —
+//      supaya AI tidak menjangkar ke satu pola eksperimen saja.
+//   2. Menerima `template_pedagogis` dari Activity Builder: kalau
+//      Inquiry Learning, pertanyaan hipotesis/pengolahan data WAJIB
+//      terbuka (tidak membocorkan rumus, karena Jalur 1 materinya
+//      sengaja tanpa persamaan — lihat generateMateriTeks). Kalau
+//      template lain, boleh mengacu ke persamaan yang sudah diajarkan.
+//   3. Menerima `konteks_materi` (cuplikan Jalur 1 yang sudah diisi
+//      guru) supaya eksperimen benar-benar nyambung dengan materi,
+//      bukan berdiri sendiri.
+//   4. Mode cadangan diganti dari "contoh konkret tapi salah topik"
+//      menjadi scaffold jujur berisi placeholder — jauh lebih aman
+//      daripada memberi instruksi botol-air yang bisa 100% tidak nyambung
+//      dengan topik saat AI sedang gagal/offline.
 exports.teachingCopilot = async (req, res) => {
-  const { topik_fisika, wilayah_sekolah } = req.body;
+  const { topik_fisika, wilayah_sekolah, template_pedagogis, konteks_materi } = req.body;
   const peran = req.user.peran;
 
   if (peran !== 'guru') {
@@ -195,12 +218,52 @@ exports.teachingCopilot = async (req, res) => {
     return res.status(400).json({ message: 'Judul/topik Fisika wajib diisi terlebih dahulu.' });
   }
 
+  const templateBersih = (template_pedagogis || '').trim();
+  const modeInquiry = templateBersih.toLowerCase() === 'inquiry learning';
+
+  const instruksiPedagogis = modeInquiry
+    ? `Template pedagogis aktivitas ini adalah INQUIRY LEARNING. Materi teks (landasan teori) yang sudah dibuat
+       guru SENGAJA belum memuat persamaan matematis apa pun, karena siswa diharapkan MENEMUKAN sendiri hubungan
+       antar besaran lewat eksperimen ini. Karena itu WAJIB:
+       - "pertanyaan_hipotesis" bersifat terbuka/eksploratif (mis. "menurutmu apa yang akan terjadi jika... dan
+         mengapa?"), JANGAN mengarahkan ke rumus atau nilai tertentu yang seharusnya baru "ditemukan" siswa.
+       - "pertanyaan_pengolahan_data" menuntun siswa MERUMUSKAN sendiri pola/hubungan dari data yang mereka
+         kumpulkan (mis. "dari data ini, hubungan apa yang kamu lihat antara X dan Y?"), bukan mengonfirmasi
+         rumus yang sudah diberi tahu.`
+    : `Template pedagogis aktivitas ini adalah ${templateBersih || 'tidak diketahui'}. Materi teks (landasan teori)
+       kemungkinan SUDAH memuat persamaan matematis kunci sebagai pijakan. Eksperimen ini BOLEH mengacu ke
+       persamaan tersebut, dan "pertanyaan_pengolahan_data" boleh mengarahkan siswa memverifikasi/menerapkan
+       persamaan itu dengan data hasil pengamatan mereka.`;
+
+  const konteksMateriTeks = (konteks_materi || '').trim();
+  const instruksiKonteksMateri = konteksMateriTeks
+    ? `Berikut cuplikan materi teks (landasan teori) yang SUDAH dibuat guru untuk topik ini — pakai sebagai
+       referensi supaya eksperimen benar-benar nyambung dan TIDAK bertentangan dengan isinya:
+       """${konteksMateriTeks.slice(0, 800)}"""`
+    : '';
+
   try {
     const model = getStructuredModel(
       `Kamu adalah AI Teaching Co-Pilot untuk guru yang mengajar Fisika di luar bidang keahliannya
       (out-of-field teaching) di wilayah 3T tanpa laboratorium standar.
-      Rancang SATU eksperimen mandiri sederhana untuk topik Fisika yang diberikan, HANYA memakai bahan yang
-      mudah ditemukan di sekitar sekolah desa/pesisir (botol bekas, bambu, batu, tali, air, dsb).
+      Rancang SATU eksperimen mandiri yang mendemonstrasikan FENOMENA FISIK YANG SPESIFIK pada topik yang
+      diberikan — bukan template eksperimen umum yang bisa dipakai untuk topik apa saja.
+
+      ATURAN PEMILIHAN BAHAN: pilih alat & bahan yang relevan SECARA FISIS dengan topik ini, dari benda
+      sehari-hari yang mudah ditemukan di rumah/sekolah desa-pesisir TANPA perlu alat laboratorium. Sesuaikan
+      kategori bahan dengan jenis fenomenanya, misalnya (contoh kategori, JANGAN disalin mentah-mentah — pilih
+      yang benar-benar cocok dengan topik yang diberikan):
+      - Topik optik/cahaya → cermin, senter/lampu HP, air jernih, kertas, kaca bening.
+      - Topik listrik/kemagnetan → baterai bekas, kabel/kawat tembaga, lampu kecil/LED, paku, magnet.
+      - Topik bunyi/getaran → gelas kaca, karet gelang, kaleng bekas, benang, penggaris plastik.
+      - Topik gerak/gaya/tekanan → bola, kelereng, penggaris, karet, botol, timbangan sederhana.
+      - Topik kalor/suhu → air panas-dingin, termometer sederhana, wadah logam vs plastik, es batu.
+      JANGAN memakai skema "isi botol dengan air, lubangi beberapa titik ketinggian, amati semburan air" kecuali
+      topiknya memang benar-benar tentang tekanan hidrostatis/fluida statis.
+
+      ${instruksiPedagogis}
+      ${instruksiKonteksMateri}
+
       Bahasa Indonesia yang jelas dan tidak teknis, cocok untuk guru yang bukan lulusan Fisika. ${ATURAN_ANTI_LATEX}
       "panduan_guru" adalah catatan KHUSUS UNTUK GURU (tidak akan dilihat siswa): jelaskan konsep Fisika di balik
       eksperimen ini, hasil/jawaban yang diharapkan, serta tips antisipasi kesalahan umum siswa/guru non-linier.`,
@@ -220,7 +283,9 @@ exports.teachingCopilot = async (req, res) => {
       }
     );
 
-    const prompt = `Topik Fisika: ${topik_fisika}. Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}.`;
+    const prompt = `Topik Fisika: ${topik_fisika}
+Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}
+Template pedagogis: ${templateBersih || 'tidak diketahui'}`;
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
     const parsed = JSON.parse(text);
@@ -228,15 +293,20 @@ exports.teachingCopilot = async (req, res) => {
     return res.status(200).json({ ...parsed, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (teaching-copilot):", error.message, "— Mode cadangan aktif.");
+    // Mode cadangan JUJUR: karena tanpa AI kita tidak bisa tahu bahan apa
+    // yang benar-benar cocok secara fisis untuk topik ini, fallback tidak
+    // lagi berpura-pura spesifik dengan contoh botol-air yang bisa salah
+    // total (mis. untuk topik Listrik). Sebagai gantinya, berikan kerangka
+    // yang jujur mengarahkan guru mengisi sendiri sesuai topik.
     return res.status(200).json({
-      judul: `Eksperimen Sederhana: ${topik_fisika}`,
-      tujuan: `Siswa mengamati penerapan konsep "${topik_fisika}" melalui alat sederhana yang mudah ditemukan di sekitar wilayah ${wilayah_sekolah || 'sekolah'}.`,
-      pertanyaan_hipotesis: `Sebelum mencoba, menurutmu apa yang akan terjadi dan mengapa kamu menduga begitu?`,
-      alat_bahan: `- Botol plastik bekas\n- Air\n- Tali/karet\n- Alat tulis untuk mencatat pengamatan`,
-      langkah_langkah: `1. Siapkan botol plastik bekas dan isi dengan air.\n2. Lubangi botol pada 2-3 titik ketinggian berbeda.\n3. Amati dan catat jarak/kekuatan semburan air dari tiap lubang.\n4. Ulangi pengamatan 2-3 kali untuk memastikan hasilnya konsisten.`,
-      pertanyaan_pengolahan_data: `Dari catatan pengamatanmu, pola apa yang muncul? Apakah ada hubungan antara ketinggian lubang dan hasil yang kamu amati?`,
-      pertanyaan_kesimpulan: `Berdasarkan pola yang kamu temukan, bagaimana kamu akan menjelaskan konsep "${topik_fisika}" dengan kata-katamu sendiri? Apa yang masih membuatmu bingung?`,
-      panduan_guru: `[Mode Cadangan] Sambungan ke AI terputus, jadi contoh di atas bersifat umum. Sesuaikan alat/bahan dan langkah dengan topik "${topik_fisika}" secara spesifik, dan pastikan siswa mencatat data kuantitatif (bukan cuma pengamatan kualitatif) sebelum masuk ke tahap pengolahan data.`,
+      judul: `[Isi Manual] Eksperimen Mandiri: ${topik_fisika}`,
+      tujuan: `Siswa mengamati dan membuktikan sendiri fenomena "${topik_fisika}" melalui percobaan sederhana.`,
+      pertanyaan_hipotesis: `[Sambungan ke AI terputus — tulis 1 pertanyaan terbuka yang memancing dugaan siswa SEBELUM mencoba, terkait topik "${topik_fisika}".]`,
+      alat_bahan: `[Sambungan ke AI terputus — pilih 3-5 bahan sehari-hari yang secara fisis relevan dengan "${topik_fisika}" (contoh: kalau topik optik → cermin/senter/air jernih; kalau listrik → baterai/kabel/lampu kecil; kalau bunyi → gelas/karet/kaleng; kalau gerak/gaya → bola/kelereng/penggaris; sesuaikan dengan topik ini, JANGAN pakai botol berlubang kecuali topiknya memang tekanan zat cair).]`,
+      langkah_langkah: `[Sambungan ke AI terputus — tulis 3-5 langkah bernomor yang langsung mendemonstrasikan "${topik_fisika}" memakai bahan di atas.]`,
+      pertanyaan_pengolahan_data: `[Sambungan ke AI terputus — tulis pertanyaan yang menuntun siswa membaca pola dari data/pengamatan yang mereka kumpulkan pada percobaan "${topik_fisika}" ini.]`,
+      pertanyaan_kesimpulan: `Berdasarkan hasil percobaanmu, bagaimana kamu akan menjelaskan konsep "${topik_fisika}" dengan kata-katamu sendiri? Apa yang masih membuatmu bingung?`,
+      panduan_guru: `[Mode Cadangan] Koneksi ke AI terputus, jadi bagian eksperimen di atas SENGAJA berupa placeholder, bukan contoh konkret — supaya tidak salah topik (mis. memberi instruksi eksperimen air untuk topik Listrik). Mohon lengkapi manual sesuai "${topik_fisika}"${templateBersih ? ` dan template ${templateBersih}` : ''}, lalu coba klik tombol AI Teaching Co-Pilot lagi sebentar lagi kalau sinyal sudah kembali.`,
       source: "local-fallback-mode"
     });
   }
