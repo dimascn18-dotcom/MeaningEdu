@@ -8,7 +8,8 @@ const {
   generateLocalContext,
   teachingCopilot,
   pedagogicalAdvisor,
-  generateMateriTeks
+  generateMateriTeks,
+  generateMateriKelas
 } = require('../controllers/aiController');
 
 // --- Fitur Siswa ---
@@ -20,13 +21,15 @@ router.post('/simplify', auth, simplifyContent);
 // --- Fitur Guru ---
 // Validasi AI pada Meaningful Activity Builder
 router.post('/validate-activity', auth, validateActivity);
-// AI Local Context Generator (sekarang: pengisi Pertanyaan Pemantik)
+// AI Local Context Generator (pengisi Pertanyaan Pemantik)
 router.post('/local-context', auth, generateLocalContext);
-// AI Teaching Co-Pilot Manual (sekarang: rancang eksperimen terstruktur + panduan guru)
+// AI Teaching Co-Pilot Manual (rancang eksperimen terstruktur + panduan guru)
 router.post('/teaching-copilot', auth, teachingCopilot);
 // AI Pedagogical Advisor Alert (MLI Dashboard)
 router.post('/pedagogical-advisor', auth, pedagogicalAdvisor);
-// BARU (Bagian 1): AI Materi Generator — pengisi Jalur 1 (Materi Teks)
-router.post('/generate-materi', auth, generateMateriTeks);
+// AI Materi Generator — pengisi Jalur 1 (Materi Teks) di Meaningful Activity Builder
+router.post('/generate-materi-teks', auth, generateMateriTeks);
+// AI Generate Materi + Saran Eksperimen — Simple Class & Material Manager (Gap #2)
+router.post('/generate-materi', auth, generateMateriKelas);
 
 module.exports = router;

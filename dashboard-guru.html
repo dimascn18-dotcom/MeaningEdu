@@ -255,12 +255,6 @@
 
             <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
           </div>
-
-            <div class="ai-suggestion-box" id="boxValidasi"><strong>Saran Relevansi Kontekstual</strong><span id="teksValidasi"></span></div>
-            <div class="ai-suggestion-box" id="boxCopilot"><strong>Panduan Eksperimen (AI Co-Pilot)</strong><span id="teksCopilot"></span></div>
-
-            <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
-          </div>
         </div>
 
         <div class="panel tren-panel">
@@ -470,7 +464,7 @@ async function muatMateri(kelasId) {
         const btn = document.getElementById('btnMateriGenerator');
         btn.disabled = true; btn.textContent = '🧠 Menyusun materi...';
         try {
-          const res = await fetchWithAuth('/ai/generate-materi', {
+          const res = await fetchWithAuth('/ai/generate-materi-teks', {
             method: 'POST',
             body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis })
           });

@@ -615,12 +615,14 @@ async function muatMateriSiswa(kelasId) {
 
       try {
         const response = await fetchWithAuth('/ai/socratic', {
+          
           method: 'POST',
           body: JSON.stringify({
             topik_fisika: aktivitasTerpilih.judul,
             jawaban_awal_siswa: jawabanAwal
           })
         });
+        if (!response) return; // fetchWithAuth sudah mengarahkan ke login (sesi habis), jangan lanjut proses
         const data = await response.json();
         if (response.ok) {
           dataJurnalSementara.jawaban_awal = jawabanAwal;
@@ -671,6 +673,7 @@ async function muatMateriSiswa(kelasId) {
           durasi_belajar: payload.durasi_belajar
         })
       });
+      if (!response) return; // sesi habis, fetchWithAuth sudah redirect ke login
       if (response.ok) {
         alert('Hebat! Jurnal refleksimu berhasil disimpan.');
         window.location.reload();
