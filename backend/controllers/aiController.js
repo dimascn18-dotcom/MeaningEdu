@@ -290,13 +290,24 @@ Refleksi Metakognitif: ${dimensi.refleksi}`;
 
 // ================= 7. AI Materi Generator — Jalur 1 / Materi Teks (Guru) =================
 // Mengisi Jalur 1 pada Meaningful Activity Builder dengan LANDASAN TEORI
-// — definisi formal, persamaan matematis kunci, dan analogi sehari-hari.
+// — definisi formal, analogi sehari-hari, dan (kondisional) persamaan
+// matematis kunci.
 // CATATAN ROUTE: dipetakan ke POST /ai/generate-materi-teks (BUKAN
 // /ai/generate-materi) — nama route lama itu sudah dipakai fitur lain
 // (Simple Class & Material Manager, lihat fungsi generateMateriKelas di
-// bawah) dengan kontrak respons berbeda. Memakai nama yang sama
-// menyebabkan Material Manager menerima field yang salah dan tampak
-// "tidak generate apa-apa".
+// bawah) dengan kontrak respons berbeda.
+//
+// BAGIAN 2 — kedalaman materi sekarang mengikuti template_pedagogis:
+//   - Inquiry Learning       → TANPA persamaan matematis. Definisi + analogi
+//     saja, supaya siswa MENEMUKAN sendiri hubungan antar besaran lewat
+//     Pertanyaan Penggiring Hipotesis pada eksperimen (menuliskan rumus di
+//     sini berarti membocorkan jawaban sebelum proses inkuiri dimulai).
+//   - Discovery / Problem-Based / Project-Based / Eksperimen Mandiri →
+//     DENGAN dasar persamaan matematis. Karena banyak guru target platform
+//     ini out-of-field (bukan lulusan Fisika), tiap variabel WAJIB
+//     dijelaskan spesifik & gamblang (bukan cuma "F = gaya", tapi
+//     "F = gaya total yang bekerja pada benda, satuan Newton (N)"), plus
+//     satu contoh perhitungan angka bulat.
 exports.generateMateriTeks = async (req, res) => {
   const { topik_fisika, wilayah_sekolah, template_pedagogis } = req.body;
   const peran = req.user.peran;
@@ -308,31 +319,53 @@ exports.generateMateriTeks = async (req, res) => {
     return res.status(400).json({ message: 'Judul/topik Fisika wajib diisi terlebih dahulu.' });
   }
 
+  const tanpaPersamaan = (template_pedagogis || '').trim().toLowerCase() === 'inquiry learning';
+
+  const instruksiKedalaman = tanpaPersamaan
+    ? `Template pedagogis yang dipilih guru adalah INQUIRY LEARNING. Materi ini HANYA berisi:
+       1. Definisi formal konsep utama (bahasa jelas, tetap akurat secara keilmuan).
+       2. Satu analogi sehari-hari yang mudah dibayangkan siswa di wilayah 3T (pesisir/pedesaan/pegunungan).
+       JANGAN menuliskan persamaan matematis, rumus, atau hubungan kuantitatif apa pun antar besaran —
+       biarkan siswa MENEMUKAN sendiri hubungan tersebut lewat pertanyaan penggiring hipotesis dan
+       pengolahan data pada eksperimen mandiri. Menuliskan rumus di sini akan membocorkan jawaban
+       sebelum proses inkuiri dimulai.`
+    : `Template pedagogis yang dipilih guru adalah ${template_pedagogis || 'tidak diketahui'} — jenis ini
+       membutuhkan DASAR PERSAMAAN MATEMATIS sebagai pijakan sebelum siswa memecahkan masalah/proyek.
+       Materi ini berisi:
+       1. Definisi formal konsep utama (bahasa jelas, tetap akurat secara keilmuan).
+       2. Persamaan matematis kunci yang relevan. WAJIB jelaskan SETIAP variabel secara spesifik dan
+          gamblang — bukan hanya "F = gaya", tapi misalnya "F = gaya total yang bekerja pada benda,
+          satuan Newton (N)". Tulis juga SATU contoh perhitungan sederhana dengan angka bulat, supaya
+          guru yang bukan lulusan Fisika (out-of-field) bisa langsung membayangkan penerapannya tanpa
+          perlu mencari referensi tambahan.
+       3. Satu analogi sehari-hari yang mudah dibayangkan siswa di wilayah 3T (pesisir/pedesaan/pegunungan).`;
+
   try {
     const model = getModel(`Kamu adalah AI Materi Generator untuk platform MeaningEdu.
-      Tulis ringkasan LANDASAN TEORI Fisika untuk topik yang diberikan, mencakup:
-      1. Definisi formal konsep utama (bahasa jelas, tetap akurat secara keilmuan).
-      2. Persamaan matematis kunci yang relevan — tuliskan persamaannya beserta arti tiap variabelnya, jangan hanya simbol.
-      3. Satu analogi sehari-hari yang mudah dibayangkan siswa di wilayah 3T (pesisir/pedesaan/pegunungan) untuk konsep utamanya.
+      Tulis ringkasan LANDASAN TEORI Fisika untuk topik yang diberikan.
+      ${instruksiKedalaman}
 
-      Tulis dalam bahasa Indonesia, terstruktur dengan sub-judul singkat per bagian, panjang sedang (sekitar 200-350 kata).
+      Tulis dalam bahasa Indonesia, terstruktur dengan sub-judul singkat per bagian, panjang sedang
+      (sekitar 200-350 kata, boleh sedikit lebih panjang kalau memuat contoh perhitungan).
       JANGAN menuliskan langkah-langkah eksperimen atau instruksi praktik — itu bagian terpisah dari materi ini.
       ${ATURAN_ANTI_LATEX}
       Keluarkan HANYA teks materi, tanpa embel-embel pembuka seperti "Berikut adalah...".`);
 
     const prompt = `Topik Fisika: ${topik_fisika}
 Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}
-Template pedagogis yang direncanakan guru: ${template_pedagogis || 'tidak diketahui'}`;
+Template pedagogis yang dipilih guru: ${template_pedagogis || 'tidak diketahui'}`;
 
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
 
-    return res.status(200).json({ materi: text.trim(), source: "gemini-live" });
+    return res.status(200).json({ materi: text.trim(), tanpa_persamaan: tanpaPersamaan, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (generate-materi-teks):", error.message, "— Mode cadangan aktif.");
-    const materiCadangan = `📖 Definisi\nKonsep "${topik_fisika}" adalah salah satu topik inti dalam Fisika yang mempelajari hubungan sebab-akibat antar besaran fisis terkait.\n\n📐 Persamaan Kunci\n(Sambungan ke AI terputus — mohon lengkapi persamaan matematis utama topik ini secara manual, beserta arti tiap variabelnya, sebelum aktivitas diterbitkan.)\n\n🔗 Analogi Sehari-hari\nBayangkan fenomena "${topik_fisika}" ini seperti kejadian yang sering ditemui di sekitar ${wilayah_sekolah || 'lingkunganmu'} — cobalah kaitkan dengan kegiatan nelayan, petani, atau kehidupan sehari-hari setempat.`;
-    return res.status(200).json({ materi: materiCadangan, source: "local-fallback-mode" });
+    const materiCadangan = tanpaPersamaan
+      ? `📖 Definisi\nKonsep "${topik_fisika}" adalah salah satu topik inti dalam Fisika yang mempelajari hubungan sebab-akibat antar besaran fisis terkait.\n\n🔗 Analogi Sehari-hari\nBayangkan fenomena "${topik_fisika}" ini seperti kejadian yang sering ditemui di sekitar ${wilayah_sekolah || 'lingkunganmu'} — cobalah kaitkan dengan kegiatan nelayan, petani, atau kehidupan sehari-hari setempat.\n\n(Catatan: persamaan matematis sengaja tidak dicantumkan karena template Inquiry Learning — biarkan siswa menemukannya sendiri lewat eksperimen.)`
+      : `📖 Definisi\nKonsep "${topik_fisika}" adalah salah satu topik inti dalam Fisika yang mempelajari hubungan sebab-akibat antar besaran fisis terkait.\n\n📐 Persamaan Kunci\n(Sambungan ke AI terputus — mohon lengkapi persamaan matematis utama topik ini secara manual, beserta arti tiap variabelnya dalam bahasa sederhana dan satu contoh perhitungan, sebelum aktivitas diterbitkan.)\n\n🔗 Analogi Sehari-hari\nBayangkan fenomena "${topik_fisika}" ini seperti kejadian yang sering ditemui di sekitar ${wilayah_sekolah || 'lingkunganmu'} — cobalah kaitkan dengan kegiatan nelayan, petani, atau kehidupan sehari-hari setempat.`;
+    return res.status(200).json({ materi: materiCadangan, tanpa_persamaan: tanpaPersamaan, source: "local-fallback-mode" });
   }
 };
 

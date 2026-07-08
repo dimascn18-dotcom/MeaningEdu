@@ -222,9 +222,12 @@
             <label>Template Pedagogis</label>
             <select id="bTemplate">
               <option value="Inquiry Learning">Inquiry Learning</option>
+              <option value="Discovery Learning">Discovery Learning</option>
+              <option value="Problem-Based Learning">Problem-Based Learning</option>
               <option value="Project-Based Learning">Project-Based Learning</option>
               <option value="Eksperimen Mandiri">Eksperimen Mandiri</option>
             </select>
+            <p id="materiDepthHint" style="font-size:0.76rem;color:var(--text-lt);margin:-8px 0 12px;"></p>
 
             <label>Jalur 1 — Materi Teks (Landasan Teori)</label>
             <textarea id="bJalurTeks" rows="5" placeholder="Definisi formal, persamaan matematis kunci, dan analogi sehari-hari seputar topik ini... (bisa diisi otomatis lewat AI Materi Generator di bawah)"></textarea>
@@ -300,6 +303,20 @@
       let kelasAktifId = null;
       let aktivitasAktifId = null;
       let aktivitasAktifJudul = null;
+
+       // ================= Bagian 2: hint kedalaman materi sesuai template =================
+      function updateMateriDepthHint() {
+        const nilai = document.getElementById('bTemplate').value;
+        const hint = document.getElementById('materiDepthHint');
+        if (!hint) return;
+        if (nilai === 'Inquiry Learning') {
+          hint.textContent = '🧠 Mode Inquiry: materi akan TANPA persamaan matematis — siswa menemukan sendiri lewat eksperimen.';
+        } else {
+          hint.textContent = '🧠 Materi akan menyertakan dasar persamaan matematis, dijelaskan sederhana untuk guru non-Fisika.';
+        }
+      }
+      document.getElementById('bTemplate').addEventListener('change', updateMateriDepthHint);
+      updateMateriDepthHint();
        // ================= SIMPLE CLASS & MATERIAL MANAGER (Gap #2) =================
 const DIMENSI_LABEL_MAP = {
   relevansi: '🧭 Relevansi', otonomi: '🕊️ Otonomi', kompetensi: '💪 Kompetensi',
