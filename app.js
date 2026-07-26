@@ -1,6 +1,6 @@
 // MeaningEdu — app.js
 // URL Backend (Ganti dengan URL Railway saat deploy nanti)
-const API_BASE_URL = 'https://meaningedu-production.up.railway.app';
+const API_BASE_URL = 'https://https://meaning-edu-3pes.vercel.app/';
 
 // --- Navbar scroll effect ---
 const navbar = document.querySelector('.navbar');
