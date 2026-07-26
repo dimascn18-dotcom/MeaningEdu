@@ -32,13 +32,17 @@ app.get('/', (req, res) => {
   res.json({ message: "API MeaningEdu berjalan dengan baik! 🚀" });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server Backend berjalan pada port ${PORT} 🚀`);
-});
+// Vercel serverless tidak boleh app.listen() — cukup export app.
+// Railway (dan lokal) tetap butuh listen() karena servernya persisten.
+if (!process.env.VERCEL) {
+  const server = app.listen(PORT, () => {
+    console.log(`Server Backend berjalan pada port ${PORT} 🚀`);
+  });
 
-// Penangkap error jika port bertabrakan atau ada masalah sistem
-server.on('error', (error) => {
-  console.error("Gagal menjalankan server karena:", error.message);
-});
+  server.on('error', (error) => {
+    console.error("Gagal menjalankan server karena:", error.message);
+  });
+}
 
+module.exports = app;
 
