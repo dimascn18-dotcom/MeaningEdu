@@ -12,13 +12,16 @@ const { ambilAktivitasDenganKelas, siswaTerdaftarDiKelas } = require('../utils/o
 // perlu langkah manual tambahan.
 exports.simpanJurnal = async (req, res) => {
   const { aktivitas_id } = req.params;
-  const { jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar } = req.body;
+  const { jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id } = req.body;
   const siswa_id = req.user.id;
   const peran = req.user.peran;
 
   // Validasi: Pastikan yang mengirim adalah Siswa
   if (peran !== 'siswa') {
     return res.status(403).json({ message: 'Akses ditolak! Hanya siswa yang dapat mengisi jurnal.' });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(client_submission_id || '')) {
+    return res.status(400).json({ message: 'ID pengiriman jurnal tidak valid.' });
   }
 
   try {
@@ -35,9 +38,25 @@ exports.simpanJurnal = async (req, res) => {
     }
 
     const newJurnal = await pool.query(
-      'INSERT INTO jurnal_refleksi (siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar]
+      `INSERT INTO jurnal_refleksi
+       (siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (siswa_id, client_submission_id) WHERE client_submission_id IS NOT NULL
+       DO NOTHING RETURNING *`,
+      [siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id]
     );
+
+    if (newJurnal.rows.length === 0) {
+      const existing = await pool.query(
+        'SELECT * FROM jurnal_refleksi WHERE siswa_id = $1 AND client_submission_id = $2',
+        [siswa_id, client_submission_id]
+      );
+      return res.status(200).json({
+        message: 'Jurnal sebelumnya sudah tersinkronisasi.',
+        data: existing.rows[0],
+        duplicate: true
+      });
+    }
 
     // --- NLP Reflection Scoring Engine ---
     // Jurnal SUDAH tersimpan di titik ini, jadi kalau scoring gagal

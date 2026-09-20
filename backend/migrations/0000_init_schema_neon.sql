@@ -1,7 +1,7 @@
 -- ============================================================
 -- 0000_init_schema_neon.sql
 -- Skema awal MeaningEdu, dikonsolidasikan dari migrasi 0001–0003
--- untuk setup database baru di Neon (menggantikan Railway).
+-- untuk setup database baru di Neon.
 -- ============================================================
 BEGIN;
 
@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS users (
   nama VARCHAR(150) NOT NULL,
   email VARCHAR(150) UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  peran VARCHAR(20) NOT NULL CHECK (peran IN ('guru','siswa')),
+  peran VARCHAR(20) NOT NULL CHECK (peran IN ('admin','guru','siswa')),
+  status_akun VARCHAR(20) NOT NULL DEFAULT 'aktif' CHECK (status_akun IN ('pending','aktif','ditolak')),
   wilayah_sekolah VARCHAR(100),
+  approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  approved_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -74,10 +77,13 @@ CREATE TABLE IF NOT EXISTS jurnal_refleksi (
   pertanyaan_ai TEXT,
   jawaban_lanjutan TEXT,
   durasi_belajar INTEGER,
+  client_submission_id UUID,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_jurnal_siswa_id ON jurnal_refleksi(siswa_id);
 CREATE INDEX IF NOT EXISTS idx_jurnal_aktivitas_id ON jurnal_refleksi(aktivitas_id);
+-- Index client_submission_id dibuat oleh 0007, setelah migration tersebut
+-- memastikan kolomnya ada pada database legacy.
 
 CREATE TABLE IF NOT EXISTS mli_scores (
   id SERIAL PRIMARY KEY,
@@ -91,7 +97,8 @@ CREATE TABLE IF NOT EXISTS mli_scores (
   skor_akhir NUMERIC(5,2) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_mli_scores_created_at ON mli_scores(created_at);
+-- Index created_at dibuat oleh 0004, setelah migration tersebut memastikan
+-- kolomnya ada pada database legacy.
 CREATE INDEX IF NOT EXISTS idx_mli_scores_aktivitas_id ON mli_scores(aktivitas_id);
 
 CREATE TABLE IF NOT EXISTS materi_kelas (
@@ -102,8 +109,14 @@ CREATE TABLE IF NOT EXISTS materi_kelas (
   tipe_materi VARCHAR(20) NOT NULL DEFAULT 'teks',
   konten TEXT,
   dimensi_disasar VARCHAR(30)[] NOT NULL,
+  blob_pathname TEXT,
+  nama_file_asli TEXT,
+  mime_type VARCHAR(100),
+  ukuran_byte BIGINT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_materi_kelas_kelas_id ON materi_kelas(kelas_id);
+-- Index blob_pathname dibuat oleh 0007, setelah migration tersebut memastikan
+-- kolomnya ada pada database legacy.
 
 COMMIT;

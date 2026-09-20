@@ -1,5 +1,5 @@
 -- ============================================================
--- Migrasi: Simple Class & Material Manager (Gap #2)
+-- Migrasi 0006: Simple Class & Material Manager (Gap #2)
 -- ============================================================
 BEGIN;
 

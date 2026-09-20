@@ -1,5 +1,5 @@
 -- ============================================================
--- Migrasi: Catatan Guru pada Jalur Eksperimen Mandiri
+-- Migrasi 0005: Catatan Guru pada Jalur Eksperimen Mandiri
 -- ============================================================
 -- Menambahkan kolom catatan_guru ke tabel jalur_aktivitas.
 -- Kolom ini menampung "Panduan Guru" hasil AI Teaching Co-Pilot

@@ -1,5 +1,5 @@
 -- ============================================================
--- Migrasi: Metadata waktu untuk tren mingguan MLI Dashboard
+-- Migrasi 0004: Metadata waktu untuk tren mingguan MLI Dashboard
 -- ============================================================
 -- Tabel mli_scores sebelumnya dibuat langsung di database (tidak
 -- lewat migration file), jadi kita tidak yakin 100% kolom apa saja

@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="vendor/katex/katex.min.css" />
   <style>
     /* Font ramah disleksia (opsional, dimuat dari CDN publik) */
     @font-face {
@@ -289,7 +290,11 @@
     </div>
   </main>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
+  <script defer src="vendor/katex/katex.min.js"></script>
+  <script defer src="vendor/katex/auto-render.min.js"></script>
+  <script defer src="math-render.js"></script>
   <script>
   (function () {
     // ================= STATE & SAPAAN =================
@@ -312,11 +317,11 @@
     function renderKelasPanel(kelasAktif) {
       const lainnya = daftarKelasSiswa.filter(k => k.id !== kelasAktif.id);
       const listLain = lainnya.length
-        ? `<p class="empty-hint">Kelas lain: ${lainnya.map(k => `<span class="ganti-kelas-link" data-id="${k.id}">${k.nama_kelas}</span>`).join(' &middot; ')}</p>`
+        ? `<p class="empty-hint">Kelas lain: ${lainnya.map(k => `<span class="ganti-kelas-link" data-id="${Number(k.id)}">${escapeHtml(k.nama_kelas)}</span>`).join(' &middot; ')}</p>`
         : '';
       document.getElementById('kelasContent').innerHTML = `
         <div class="kelas-active-badge">
-          <span class="k-nama">📚 ${kelasAktif.nama_kelas} aktif</span>
+          <span class="k-nama">📚 ${escapeHtml(kelasAktif.nama_kelas)} aktif</span>
           <span class="ganti-kelas-link" id="tambahKelasLink">+ Gabung kelas lain</span>
         </div>
         ${listLain}`;
@@ -445,17 +450,19 @@ async function muatMateriSiswa(kelasId) {
     wrap.innerHTML = data.map(m => `
       <div class="materi-siswa-item">
         <div class="ms-head">
-          <span class="ms-judul">${m.judul}</span>
-          <span class="ms-tipe">${m.tipe_materi}</span>
+          <span class="ms-judul">${escapeHtml(m.judul)}</span>
+          <span class="ms-tipe">${escapeHtml(m.tipe_materi)}</span>
         </div>
-        <div class="ms-topik">Topik: ${m.topik_fisika}</div>
+        <div class="ms-topik">Topik: ${escapeHtml(m.topik_fisika)}</div>
         <div class="ms-konten">${
-          (m.tipe_materi === 'video' || m.tipe_materi === 'tautan') && /^https?:\/\//i.test((m.konten || '').trim())
-            ? `<a href="${m.konten}" target="_blank" rel="noopener">🔗 Buka ${m.tipe_materi === 'video' ? 'Video' : 'Tautan'}</a>`
-            : (m.konten || '<span class="empty-hint">Belum ada isi materi.</span>')
+          m.tipe_materi === 'pdf'
+            ? `<button type="button" class="materi-tool-btn buka-pdf" data-materi-id="${m.id}">📄 Buka ${escapeHtml(m.nama_file_asli || 'PDF')}</button>`
+            : (m.tipe_materi === 'video' || m.tipe_materi === 'tautan') && safeHttpUrl((m.konten || '').trim())
+            ? `<a href="${escapeHtml(safeHttpUrl(m.konten.trim()))}" target="_blank" rel="noopener">🔗 Buka ${m.tipe_materi === 'video' ? 'Video' : 'Tautan'}</a>`
+            : (m.konten ? escapeHtml(m.konten) : '<span class="empty-hint">Belum ada isi materi.</span>')
         }</div>
         <div class="ms-dim-row">
-          ${(m.dimensi_disasar || []).map(d => `<span class="ms-dim-badge">${DIMENSI_LABEL_SISWA[d] || d}</span>`).join('')}
+          ${(m.dimensi_disasar || []).map(d => `<span class="ms-dim-badge">${escapeHtml(DIMENSI_LABEL_SISWA[d] || d)}</span>`).join('')}
         </div>
       </div>
     `).join('');
@@ -464,6 +471,25 @@ async function muatMateriSiswa(kelasId) {
     wrap.innerHTML = '<div class="empty-hint">🔌 Gagal memuat materi. Coba lagi saat online.</div>';
   }
 }
+
+document.getElementById('daftarMateriSiswa').addEventListener('click', async event => {
+  const button = event.target.closest('.buka-pdf');
+  if (!button) return;
+  const tab = window.open('about:blank', '_blank');
+  if (tab) tab.opener = null;
+  button.disabled = true;
+  try {
+    const response = await fetchWithAuth(`/materi/${button.dataset.materiId}/pdf/open`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'PDF tidak dapat dibuka.');
+    if (tab) tab.location.href = data.url; else window.location.href = data.url;
+  } catch (error) {
+    if (tab) tab.close();
+    alert(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
     // ================= 3. PANEL MATERI + JALUR OTONOM =================
     function pilihAktivitas(akt) {
       aktivitasTerpilih = akt;
@@ -643,24 +669,82 @@ async function muatMateriSiswa(kelasId) {
       }
     });
 
+    const OFFLINE_DB_NAME = 'MeaningEduDB';
+    const OFFLINE_DB_VERSION = 1;
+    const OFFLINE_JOURNAL_STORE = 'jurnalOffline';
+
     function simpanKeIndexedDB(dataJurnal) {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open('MeaningEduDB', 1);
+        const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          if (!db.objectStoreNames.contains('jurnalOffline')) {
-            db.createObjectStore('jurnalOffline', { keyPath: 'id', autoIncrement: true });
+          if (!db.objectStoreNames.contains(OFFLINE_JOURNAL_STORE)) {
+            db.createObjectStore(OFFLINE_JOURNAL_STORE, { keyPath: 'id', autoIncrement: true });
           }
         };
         request.onsuccess = (event) => {
           const db = event.target.result;
-          const tx = db.transaction('jurnalOffline', 'readwrite');
-          tx.objectStore('jurnalOffline').add(dataJurnal);
+          const tx = db.transaction(OFFLINE_JOURNAL_STORE, 'readwrite');
+          tx.objectStore(OFFLINE_JOURNAL_STORE).add({
+            ...dataJurnal,
+            queued_at: dataJurnal.queued_at || new Date().toISOString(),
+            attempts: dataJurnal.attempts || 0
+          });
           tx.oncomplete = () => resolve();
-          tx.onerror = (err) => reject(err);
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
         };
-        request.onerror = (err) => reject(err);
+        request.onerror = () => reject(request.error);
       });
+    }
+
+    function perbaruiTokenJurnalTertunda(siswaId, token) {
+      if (!siswaId || !token) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(OFFLINE_JOURNAL_STORE)) {
+            db.createObjectStore(OFFLINE_JOURNAL_STORE, { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const tx = db.transaction(OFFLINE_JOURNAL_STORE, 'readwrite');
+          const store = tx.objectStore(OFFLINE_JOURNAL_STORE);
+          const cursorRequest = store.openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const jurnal = cursor.value;
+            // Jangan pernah memindahkan antrean ke akun lain pada perangkat bersama.
+            if (Number(jurnal.siswa_id) === Number(siswaId) && jurnal.token !== token) {
+              cursor.update({ ...jurnal, token });
+            }
+            cursor.continue();
+          };
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function jadwalkanSinkronisasiJurnal() {
+      if (!('serviceWorker' in navigator)) return;
+      await perbaruiTokenJurnalTertunda(user?.id, localStorage.getItem('token'));
+      const registration = await navigator.serviceWorker.ready;
+      if ('sync' in registration) {
+        await registration.sync.register('sync-jurnal');
+      } else {
+        (registration.active || navigator.serviceWorker.controller)?.postMessage({ type: 'SYNC_JOURNALS_NOW' });
+      }
+    }
+
+    async function antrekanJurnal(payload) {
+      await simpanKeIndexedDB(payload);
+      await jadwalkanSinkronisasiJurnal();
     }
 
     async function kirimJurnalKeServer(payload) {
@@ -670,17 +754,21 @@ async function muatMateriSiswa(kelasId) {
           jawaban_awal: payload.jawaban_awal,
           pertanyaan_ai: payload.pertanyaan_ai,
           jawaban_lanjutan: payload.jawaban_lanjutan,
-          durasi_belajar: payload.durasi_belajar
+          durasi_belajar: payload.durasi_belajar,
+          client_submission_id: payload.client_submission_id
         })
       });
       if (!response) return; // sesi habis, fetchWithAuth sudah redirect ke login
       if (response.ok) {
         alert('Hebat! Jurnal refleksimu berhasil disimpan.');
         window.location.reload();
-      } else {
-        const errorData = await response.json();
-        alert('Gagal menyimpan: ' + errorData.message);
+        return;
       }
+
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(errorData.message || `Server merespons ${response.status}`);
+      error.retryable = response.status === 429 || response.status >= 500;
+      throw error;
     }
 
     document.getElementById('btnLanjutTahap3').addEventListener('click', async () => {
@@ -751,14 +839,14 @@ ${jawabanStrategi}`;
         jawaban_lanjutan: dataJurnalSementara.jawaban_lanjutan,
         durasi_belajar: durasiDetik,
         aktivitas_id: aktivitasTerpilih.id,
-        token: localStorage.getItem('token')
+        siswa_id: user?.id,
+        token: localStorage.getItem('token'),
+        client_submission_id: crypto.randomUUID()
       };
 
       try {
-        if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
-          await simpanKeIndexedDB(payload);
-          const swRegistration = await navigator.serviceWorker.ready;
-          await swRegistration.sync.register('sync-jurnal');
+        if (!navigator.onLine) {
+          await antrekanJurnal(payload);
           alert('Anda sedang offline. Jurnal disimpan secara luring dan akan otomatis terkirim saat sinyal kembali! 📡');
           window.location.reload();
         } else {
@@ -766,12 +854,34 @@ ${jawabanStrategi}`;
         }
       } catch (err) {
         console.error('Gagal simpan:', err);
-        alert('Terjadi kesalahan jaringan.');
+        if (err instanceof TypeError || err.retryable) {
+          await antrekanJurnal(payload);
+          alert('Koneksi/server belum tersedia. Jurnal aman disimpan di perangkat dan akan dikirim ulang otomatis.');
+          window.location.reload();
+        } else {
+          alert('Gagal menyimpan: ' + err.message);
+        }
       } finally {
         btn.textContent = 'Simpan Jurnal Akhir';
         btn.disabled = false;
       }
     });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('online', () => jadwalkanSinkronisasiJurnal().catch(console.error));
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'JOURNAL_SYNC_COMPLETE') {
+          alert(`${event.data.count} jurnal luring berhasil disinkronkan.`);
+        } else if (event.data?.type === 'JOURNAL_SYNC_AUTH_REQUIRED') {
+          alert('Jurnal luring belum terkirim karena sesi telah berakhir. Silakan masuk kembali agar sinkronisasi dapat dilanjutkan.');
+        } else if (event.data?.type === 'JOURNAL_SYNC_REJECTED') {
+          alert('Satu jurnal luring ditolak server dan tetap disimpan di perangkat agar jawaban tidak hilang.');
+        }
+      });
+      if (navigator.onLine) {
+        jadwalkanSinkronisasiJurnal().catch(console.error);
+      }
+    }
 
     // ================= INIT =================
     initKelas();

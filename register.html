@@ -90,6 +90,7 @@
         <button type="button" class="role-tab active" onclick="setRole('guru', this)">🧑‍🏫 Saya Guru</button>
         <button type="button" class="role-tab" onclick="setRole('siswa', this)">👩‍🎓 Saya Siswa</button>
       </div>
+      <p class="terms-note" style="margin-top:-18px; margin-bottom:18px;">Pendaftaran guru harus disetujui admin sebelum akun dapat digunakan.</p>
       <form id="registerForm">
         <input type="hidden" id="peran" value="guru" />
         <div class="form-row">
@@ -123,7 +124,7 @@
 
         <div class="form-group">
           <label for="password">Kata Sandi</label>
-          <input type="password" id="password" placeholder="Minimal 8 karakter" required />
+          <input type="password" id="password" placeholder="Minimal 8 karakter" minlength="8" required />
         </div>
         <button type="submit" class="auth-submit">Buat Akun — Gratis</button>
         <p class="terms-note">Dengan mendaftar, Anda menyetujui Kebijakan Privasi MeaningEdu. Data Anda tidak akan dijual atau dibagikan ke pihak ketiga.</p>
@@ -146,6 +147,7 @@
 
   </script>
   
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

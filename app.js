@@ -1,10 +1,29 @@
 // MeaningEdu — app.js
-// URL Backend (Ganti dengan URL Railway saat deploy nanti)
-const API_BASE_URL = 'https://meaning-edu-3pes.vercel.app';
+const API_BASE_URL = window.MEANINGEDU_CONFIG?.API_BASE_URL;
+
+if (!API_BASE_URL) {
+  throw new Error('Konfigurasi API MeaningEdu tidak tersedia. Pastikan config.js dimuat sebelum app.js.');
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value));
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 // --- Navbar scroll effect ---
 const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
+  if (!navbar) return;
   if (window.scrollY > 20) {
     navbar.classList.add('scrolled');
   } else {
@@ -124,7 +143,7 @@ if (registerForm) {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Pendaftaran berhasil! Silakan masuk.');
+        alert(data.message || 'Pendaftaran berhasil! Silakan masuk.');
         window.location.href = 'login.html'; // Arahkan ke halaman login
       } else {
         alert(`Gagal: ${data.message}`);
@@ -164,7 +183,9 @@ if (loginForm) {
         alert('Berhasil masuk!');
 
         // 2. Arahkan ke dashboard yang sesuai dengan peran
-        if (data.user.peran === 'guru') {
+        if (data.user.peran === 'admin') {
+          window.location.href = 'admin.html';
+        } else if (data.user.peran === 'guru') {
           window.location.href = 'dashboard-guru.html'; // Sesuaikan nama file Anda
         } else {
           window.location.href = 'workspace-siswa.html'; // Sesuaikan nama file Anda
@@ -201,4 +222,3 @@ async function fetchWithAuth(url, options = {}) {
 // fetchWithAuth('/kelas')
 //   .then(res => res.json())
 //   .then(data => tampilkanKelas(data));
-

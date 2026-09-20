@@ -24,11 +24,9 @@ exports.buatAktivitas = async (req, res) => {
   try {
     const kelas = await ambilKelas(kelas_id);
     if (!kelas) {
-      client.release();
       return res.status(404).json({ message: 'Kelas tidak ditemukan.' });
     }
     if (kelas.guru_id !== guru_id) {
-      client.release();
       return res.status(403).json({ message: 'Akses ditolak! Kelas ini bukan milik Anda.' });
     }
 

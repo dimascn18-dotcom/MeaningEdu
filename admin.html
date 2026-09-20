@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Persetujuan Guru — MeaningEdu</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background: var(--cream); min-height: 100vh; }
+    .admin-shell { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .admin-head { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:24px; }
+    .request-list { display:grid; gap:14px; }
+    .request-card { background:white; border:1px solid var(--cream-dk); border-radius:14px; padding:20px; display:flex; justify-content:space-between; gap:20px; align-items:center; }
+    .request-card p { margin:4px 0; color:var(--text-md); }
+    .request-actions { display:flex; gap:8px; flex-shrink:0; }
+    .request-actions button { border:0; border-radius:999px; padding:9px 14px; cursor:pointer; font-weight:600; }
+    .approve { background:var(--forest); color:white; }
+    .reject { background:#f3d9d9; color:#7a2020; }
+    .empty { background:white; border-radius:14px; padding:28px; text-align:center; color:var(--text-lt); }
+    @media(max-width:640px){ .request-card,.admin-head{align-items:flex-start;flex-direction:column}.request-actions{width:100%}.request-actions button{flex:1} }
+  </style>
+</head>
+<body>
+  <main class="admin-shell">
+    <div class="admin-head">
+      <div><p class="section-eyebrow">Administrasi Akun</p><h1>Persetujuan Guru</h1></div>
+      <button class="btn-outline" id="logoutAdmin">Keluar</button>
+    </div>
+    <div id="requestList" class="request-list"><div class="empty">Memuat permohonan…</div></div>
+  </main>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (() => {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!user || user.peran !== 'admin') {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const list = document.getElementById('requestList');
+      document.getElementById('logoutAdmin').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = 'login.html';
+      });
+
+      async function muatPermohonan() {
+        const response = await fetchWithAuth('/admin/teacher-requests');
+        if (!response) return;
+        const data = await response.json();
+        if (!response.ok) {
+          list.innerHTML = `<div class="empty">${data.message || 'Gagal memuat permohonan.'}</div>`;
+          return;
+        }
+        if (data.length === 0) {
+          list.innerHTML = '<div class="empty">Tidak ada permohonan guru yang menunggu.</div>';
+          return;
+        }
+        list.innerHTML = data.map(item => `
+          <article class="request-card">
+            <div><strong>${escapeHtml(item.nama)}</strong><p>${escapeHtml(item.email)}</p><p>${escapeHtml(item.wilayah_sekolah || 'Wilayah belum diisi')}</p></div>
+            <div class="request-actions">
+              <button class="approve" data-id="${item.id}" data-action="setujui">Setujui</button>
+              <button class="reject" data-id="${item.id}" data-action="tolak">Tolak</button>
+            </div>
+          </article>`).join('');
+      }
+
+      function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = String(value);
+        return div.innerHTML;
+      }
+
+      list.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        button.disabled = true;
+        const response = await fetchWithAuth(`/admin/teacher-requests/${button.dataset.id}`, {
+          method: 'PATCH', body: JSON.stringify({ keputusan: button.dataset.action })
+        });
+        const data = await response.json();
+        alert(data.message || (response.ok ? 'Permohonan diperbarui.' : 'Gagal memperbarui permohonan.'));
+        if (response.ok) await muatPermohonan(); else button.disabled = false;
+      });
+
+      muatPermohonan().catch(error => {
+        console.error(error);
+        list.innerHTML = '<div class="empty">Tidak dapat terhubung ke server.</div>';
+      });
+    })();
+  </script>
+</body>
+</html>

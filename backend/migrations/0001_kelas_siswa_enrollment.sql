@@ -1,4 +1,4 @@
-Migrasi: Enrollment resmi siswa ke kelas
+-- Migrasi: Enrollment resmi siswa ke kelas
 --
 -- Menggantikan workaround lama (siswa "gabung kelas" hanya disimpan
 -- di localStorage browser, memakai ID numerik kelas yang berurutan

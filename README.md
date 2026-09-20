@@ -1,171 +1,188 @@
-# MeaningEdu — Panduan Lengkap Frontend
+# MeaningEdu
 
-## 📁 Struktur File yang Sudah Ada
+MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, jurnal refleksi, AI pendamping, serta analitik Meaningful Learning Index (MLI). Repository ini berisi baseline **MeaningEdu 01 — Stabilization & Baseline Completion**.
 
-```
-meaningedu/
-├── index.html      → Halaman utama (Landing Page)
-├── login.html      → Halaman Masuk
-├── register.html   → Halaman Daftar
-├── style.css       → Semua tampilan/warna
-├── app.js          → Fungsi interaktif
-├── sw.js           → Offline/PWA (Service Worker)
-├── manifest.json   → Konfigurasi PWA
-├── vercel.json     → Konfigurasi deploy
-└── .gitignore      → File yang diabaikan Git
+## Arsitektur aktif
+
+```mermaid
+flowchart LR
+  P[Frontend PWA<br>Vercel Static] --> A[Express API<br>Vercel Functions]
+  A --> N[(Neon PostgreSQL)]
+  A --> G[Gemini API]
+  A --> B[(Vercel Private Blob)]
 ```
 
----
+- Frontend adalah HTML/CSS/JavaScript statis di root repository.
+- Backend Node.js/Express berada di `backend/` dan dijalankan sebagai Vercel Function.
+- Neon hanya berfungsi sebagai PostgreSQL, bukan server backend.
+- Binary PDF berada di Vercel Private Blob. Neon hanya menyimpan metadata dan `blob_pathname`.
+- Alamat API frontend didefinisikan satu kali di `config.js`.
 
-## 🚀 LANGKAH 1 — Pasang Alat di Komputer Anda
+## Cakupan MeaningEdu 01
 
-### A. Install Node.js
-1. Buka: https://nodejs.org
-2. Klik tombol hijau besar "LTS" (bukan "Current")
-3. Download dan install seperti biasa (Next → Next → Finish)
+- Deployment Vercel–Neon dinormalisasi tanpa konfigurasi backend lama.
+- Jurnal dapat masuk antrean IndexedDB ketika offline atau request gagal, lalu dicoba ulang melalui Background Sync/fallback halaman.
+- Retry jurnal memakai `client_submission_id`, sehingga kiriman yang sama tidak menggandakan jurnal atau skor MLI.
+- Pendaftaran guru memerlukan persetujuan admin; siswa aktif langsung setelah mendaftar.
+- Middleware membaca status dan peran terbaru dari database, bukan mempercayai klaim peran dari browser/JWT.
+- Resource kelas, aktivitas, jurnal, materi, MLI, AI, dan PDF dibatasi berdasarkan peran, ownership, serta enrollment.
+- Persamaan Fisika dirender dengan KaTeX lokal menggunakan `\(...\)` dan `\[...\]`, termasuk saat aset PWA digunakan offline.
+- Guru dapat mengunggah PDF ke Blob privat; hanya guru pemilik kelas dan siswa terdaftar yang dapat meminta URL baca sementara.
+- MLI scoring tidak diubah. Endpoint publik untuk menulis skor manual dihapus; scoring tetap dijalankan layanan internal setelah jurnal tersimpan.
 
-### B. Cek apakah berhasil
-1. Buka **Terminal** (Mac/Linux) atau **Command Prompt** (Windows)
-   - Windows: tekan `Win + R`, ketik `cmd`, tekan Enter
-2. Ketik: `node --version`
-3. Jika muncul angka versi (misal: `v20.11.0`), berarti berhasil ✅
+## Struktur penting
 
----
+```text
+MeaningEdu/
+├── config.js                   # konfigurasi publik URL API
+├── app.js                      # autentikasi dan helper frontend
+├── sw.js                       # cache PWA + sinkronisasi jurnal
+├── math-render.js              # konfigurasi KaTeX yang aman
+├── vendor/katex/               # KaTeX 0.18.7 dan font lokal
+├── admin.html                  # persetujuan akun guru
+├── dashboard-guru.html
+├── workspace-siswa.html
+└── backend/
+    ├── config/                 # koneksi Neon
+    ├── controllers/
+    ├── middleware/             # autentikasi + role authorization
+    ├── migrations/
+    ├── routes/
+    ├── scripts/                # runner migrasi + provisioning admin
+    ├── services/               # MLI scoring
+    ├── tests/
+    └── server.js
+```
 
-## 🚀 LANGKAH 2 — Siapkan Folder di Komputer
+## Menjalankan secara lokal
 
-1. Buat folder baru di komputer Anda, misal di Desktop, namanya: `meaningedu`
-2. **Salin semua file** yang sudah dibuat ke dalam folder tersebut
-3. Buka folder tersebut dengan **VSCode**:
-   - Buka VSCode → File → Open Folder → pilih folder `meaningedu`
+Persyaratan: Node.js 20 atau lebih baru, PostgreSQL/Neon, dan kredensial Gemini. Pengujian PDF memerlukan Vercel Private Blob.
 
----
+```bash
+git clone https://github.com/dimascn18-dotcom/MeaningEdu.git
+cd MeaningEdu/backend
+npm ci
+cp .env.example .env
+npm run migrate
+npm run admin:create
+npm run dev
+```
 
-## 🚀 LANGKAH 3 — Lihat Hasilnya di Browser (Preview Lokal)
+Sajikan folder root dengan server statis, misalnya Live Server di VS Code. Untuk backend lokal, ubah sementara `API_BASE_URL` di `config.js` menjadi `http://localhost:5500`. Jangan menaruh secret di `config.js` karena file itu dikirim ke browser.
 
-Cara termudah tanpa install apapun:
+## Environment backend
 
-1. Di VSCode, klik kanan file `index.html`
-2. Pilih **"Open with Live Server"**
-   - Jika belum ada, install dulu: klik ikon Extensions (kotak di sidebar kiri) → cari "Live Server" → Install
-3. Browser akan otomatis terbuka dan menampilkan website Anda!
-4. Setiap kali Anda edit dan simpan file, tampilan browser langsung berubah otomatis 🎉
+Salin `backend/.env.example` menjadi `backend/.env` untuk pengembangan lokal.
 
----
+| Variabel | Kegunaan |
+|---|---|
+| `DATABASE_URL` | Connection string Neon/PostgreSQL |
+| `JWT_SECRET` | Secret penandatanganan JWT; gunakan nilai acak panjang |
+| `GEMINI_API_KEY` | Akses model Gemini |
+| `CORS_ORIGINS` | Daftar origin frontend yang diizinkan, dipisahkan koma; wajib di production |
+| `BLOB_STORE_ID` | ID Private Blob store; otomatis ketika store terhubung ke project |
+| `VERCEL_OIDC_TOKEN` | Disediakan dan dirotasi Vercel; jangan salin ke source code |
+| `BLOB_READ_WRITE_TOKEN` | Fallback pengembangan di luar Vercel bila OIDC tidak tersedia |
+| `ADMIN_NAME` | Nama admin untuk skrip provisioning |
+| `ADMIN_EMAIL` | Email admin |
+| `ADMIN_PASSWORD` | Kata sandi awal admin, minimal 12 karakter |
 
-## 🚀 LANGKAH 4 — Upload ke GitHub
+Di production, isi `CORS_ORIGINS` dengan origin frontend yang tepat dan hubungkan Blob store privat ke project backend agar Vercel menyediakan OIDC dan `BLOB_STORE_ID`. Jangan mengekspos kredensial Blob ke frontend.
 
-GitHub adalah tempat menyimpan kode secara online (seperti Google Drive, tapi untuk kode).
+## Database dan migrasi
 
-### A. Setup Git pertama kali (hanya sekali)
-1. Buka Terminal/Command Prompt
-2. Ketik dan tekan Enter satu per satu:
-   ```
-   git config --global user.name "Nama Anda"
-   git config --global user.email "email@anda.com"
-   ```
+```bash
+cd backend
+npm run migrate
+```
 
-### B. Buat Repository di GitHub
-1. Login ke https://github.com
-2. Klik tombol **"+"** di pojok kanan atas → **"New repository"**
-3. Nama repository: `meaningedu`
-4. Biarkan **Public** (agar bisa diakses Vercel)
-5. Jangan centang apapun
-6. Klik **"Create repository"**
-7. **Salin link repository** (bentuknya: `https://github.com/username-anda/meaningedu.git`)
+Migrasi dijalankan berurutan dan dicatat dalam `schema_migrations`. `0000_init_schema_neon.sql` hanya membuat struktur baseline yang aman terhadap tabel existing. Index yang bergantung pada kolom baru dibuat oleh migration incremental setelah kolomnya dipastikan tersedia. Karena itu perintah yang sama dapat dipakai pada database fresh maupun schema MeaningEdu legacy tanpa SQL manual. Jalankan migrasi sebelum backend baru karena autentikasi membutuhkan `status_akun`, sedangkan PDF dan jurnal membutuhkan kolom tambahan.
 
-### C. Upload kode ke GitHub
-1. Di VSCode, buka **Terminal** → Terminal → New Terminal
-2. Ketik satu per satu (tekan Enter setelah setiap baris):
-   ```
-   git init
-   git add .
-   git commit -m "Upload pertama MeaningEdu"
-   git branch -M main
-   git remote add origin https://github.com/USERNAME-ANDA/meaningedu.git
-   git push -u origin main
-   ```
-   ⚠️ Ganti `USERNAME-ANDA` dengan username GitHub Anda yang sebenarnya!
+Provision atau rotasi akun admin:
 
-3. Akan muncul popup minta login GitHub → masukkan username dan password
-4. Refresh halaman GitHub Anda — semua file sudah muncul! ✅
+```bash
+ADMIN_NAME="Admin MeaningEdu" \
+ADMIN_EMAIL="admin@example.sch.id" \
+ADMIN_PASSWORD="kata-sandi-panjang" \
+npm run admin:create
+```
 
----
+Skrip melakukan upsert berdasarkan email dan tidak mencetak kata sandi.
 
-## 🚀 LANGKAH 5 — Deploy ke Vercel (Buat Website Online)
+## Alur persetujuan guru
 
-Vercel akan mengambil kode dari GitHub dan menjadikannya website yang bisa diakses siapa saja.
+1. Calon guru mendaftar melalui halaman publik.
+2. Backend menyimpan akun sebagai `status_akun = 'pending'` tanpa menerbitkan token.
+3. Admin masuk dan membuka `admin.html`.
+4. Admin menyetujui atau menolak permohonan.
+5. Hanya akun berstatus `aktif` yang melewati middleware autentikasi.
 
-1. Buka: https://vercel.com
-2. Klik **"Sign Up"** → pilih **"Continue with GitHub"**
-3. Izinkan Vercel mengakses GitHub Anda
-4. Klik tombol **"Add New..."** → **"Project"**
-5. Cari repository `meaningedu` → klik **"Import"**
-6. Di halaman konfigurasi:
-   - Framework Preset: pilih **"Other"** (bukan Next.js atau yang lain)
-   - Biarkan semua pengaturan lain seperti default
-7. Klik **"Deploy"**
-8. Tunggu 1-2 menit...
-9. Muncul tulisan **"Congratulations!"** dan link website Anda! 🎉
+Akun siswa langsung aktif. Akun lama diaktifkan saat migrasi agar pengguna yang sudah ada tidak terkunci.
 
-Website Anda sudah online dengan alamat seperti: `meaningedu.vercel.app`
+## Persamaan Fisika
 
----
+Source matematika disimpan sebagai teks LaTeX, bukan HTML. Format yang didukung:
 
-## 🔄 Cara Update Website Setelah Edit
+```text
+Inline: \(E = mc^2\)
 
-Setiap kali Anda mengubah file dan ingin update website online:
+Blok:
+\[
+F = \frac{dp}{dt}
+\]
+```
 
-1. Buka Terminal di VSCode
-2. Ketik satu per satu:
-   ```
-   git add .
-   git commit -m "Update tampilan halaman utama"
-   git push
-   ```
-3. Vercel otomatis mendeteksi perubahan dan update website dalam 1-2 menit!
+Delimiter dolar tidak digunakan. KaTeX berjalan dengan `trust: false`, dan AI Simplifier memakai placeholder sementara agar persamaan dikembalikan tanpa perubahan. JavaScript, CSS, dan font KaTeX disimpan lokal serta masuk precache Service Worker.
 
----
+## Upload dan akses PDF
 
-## 🎨 Cara Mengubah Tampilan (Tanpa Coding)
+1. Guru pemilik kelas meminta URL upload sementara.
+2. Browser mengunggah PDF langsung ke Private Blob melalui signed `PUT`.
+3. Backend memeriksa pathname, MIME, dan ukuran objek dengan Blob `head()`.
+4. Neon menyimpan judul, topik, dimensi MLI, nama file, MIME, ukuran, dan `blob_pathname`.
+5. Backend memeriksa ownership guru atau enrollment siswa sebelum menerbitkan signed `GET` selama lima menit.
 
-### Ganti Warna Utama
-Buka `style.css`, cari bagian `:root {` di baris paling atas.
-- `--forest: #1A3A2A` → warna hijau tua (ubah angka hex untuk ganti warna)
-- `--gold: #C8A84B`   → warna emas
-- `--cream: #F5F0E8`  → warna krem/background
+PDF dibatasi 10 MB. MIME dan ekstensi diperiksa di browser, signed upload, serta backend. PDF tidak tersedia offline dan signed URL tidak disimpan di database.
 
-### Ganti Teks
-Buka `index.html`, cari teks yang ingin diubah dan langsung edit.
+## Batas dukungan offline
 
-### Tambah Gambar
-1. Simpan gambar di folder `meaningedu/`
-2. Di HTML, tambahkan: `<img src="nama-gambar.jpg" alt="Deskripsi" />`
+Offline MeaningEdu 01 bersifat parsial:
 
----
+- Halaman, CSS, JavaScript, dan KaTeX dapat dibuka dari Cache Storage setelah pernah dimuat.
+- Jurnal yang sudah disusun dapat disimpan di IndexedDB dan disinkronkan ketika koneksi tersedia.
+- Kelas, aktivitas, daftar materi, AI, dashboard MLI, dan PDF masih membutuhkan backend online.
+- PDF tidak dimasukkan ke Cache Storage.
+- Background Sync tidak tersedia di semua browser; halaman juga memicu retry saat dibuka atau kembali online.
 
-## 📱 Fitur Offline (PWA)
+## Pengujian
 
-Website ini sudah disiapkan sebagai Progressive Web App (PWA):
-- Pengunjung bisa "install" website seperti aplikasi di HP
-- Halaman tetap terbuka walau internet mati (dari cache)
-- File `sw.js` dan `manifest.json` sudah mengurus ini secara otomatis
+```bash
+cd backend
+npm test
+npx playwright install chromium
+TEST_DATABASE_URL="postgresql://..." npm run test:e2e
+```
 
----
+`npm test` mencakup registrasi dan persetujuan guru, status akun, role enforcement, ownership PDF, enrollment siswa, idempotensi jurnal, penutupan endpoint skor MLI manual, perlindungan source LaTeX, serta precache KaTeX. Bila `TEST_DATABASE_URL` tersedia, suite yang sama juga membuat database disposable fresh dan legacy, menjalankan migration dua kali, memeriksa schema akhir, lalu menghapus database tersebut.
 
-## ❓ Masalah Umum & Solusinya
+`npm run test:e2e` menjalankan Chromium terhadap frontend dan Express API nyata dengan PostgreSQL test. Integrasi Gemini dan Private Blob diganti stub deterministik khusus test; route aplikasi, JWT, ownership/enrollment, penulisan metadata, dan rendering browser tetap menggunakan implementasi production. Skenario membuktikan output rumus AI dirender KaTeX tanpa delimiter mentah, upload PDF mencapai `/pdf/complete`, siswa enrolled dapat membuka PDF, dan siswa non-enrolled menerima `403`.
 
-| Masalah | Solusi |
-|---------|--------|
-| "git is not recognized" | Install Git dari https://git-scm.com |
-| "Permission denied" di GitHub | Gunakan Personal Access Token, bukan password biasa |
-| Website tidak update di Vercel | Pastikan sudah `git push`, cek tab "Deployments" di Vercel |
-| Live Server tidak muncul di VSCode | Install ekstensi "Live Server" oleh Ritwick Dey |
+Workflow `.github/workflows/ci.yml` menjalankan `npm ci`, unit/integration test dengan service PostgreSQL 16, dependency audit, browser E2E Chromium, dan Gitleaks pada setiap pull request serta push ke branch utama/stabilisasi. Artifact laporan Playwright disimpan selama 14 hari.
 
----
+## Deployment
 
-## 📌 Catatan Penting
+Gunakan dua project Vercel dari repository yang sama:
 
-- Frontend ini adalah **tampilan saja** — belum ada data sungguhan
-- Tombol Login/Daftar belum berfungsi penuh (akan disambung ke Backend di tahap berikutnya)
-- Backend (Railway) akan menangani: database, login nyata, penyimpanan jurnal, kalkulasi MLI
+1. **Backend** — Root Directory `backend`, environment sesuai tabel di atas, dan Private Blob terhubung ke project.
+2. **Frontend** — Root Directory repository (`.`), konfigurasi statis dari `vercel.json`.
+
+Urutan rilis aman:
+
+1. jalankan `npm run migrate` terhadap Neon production;
+2. provision akun admin bila belum ada;
+3. deploy backend dan pastikan endpoint `/` merespons;
+4. pastikan `config.js` menunjuk deployment backend yang benar;
+5. deploy frontend;
+6. smoke-test registrasi siswa, permohonan guru, approval admin, jurnal online/offline, rumus, dan PDF lintas peran.
+
+Jangan commit `.env`, token Blob, connection string database, JWT secret, atau API key.

@@ -1,24 +1,20 @@
 const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
+const { lindungiBlokMatematika } = require('../utils/mathText');
 require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = "gemini-2.5-flash";
 
-// Instruksi anti-LaTeX dipakai di semua prompt yang berpotensi memuat
-// persamaan matematis. Gemini cenderung menulis notasi LaTeX (\cdot,
-// \frac{}{}, ^{2}, $...$) kalau tidak dilarang eksplisit. Notasi itu
-// TIDAK dirender di platform ini (materi ditampilkan sebagai teks
-// polos, sengaja tanpa library eksternal seperti MathJax/KaTeX demi
-// PWA offline-first), jadi hasilnya tampil mentah ("\cdot" dsb) di
-// layar siswa/guru. Sebagai bonus, backslash LaTeX juga bukan escape
-// character valid di JSON — ini penyebab paling mungkin di balik
-// kegagalan JSON.parse() yang membuat beberapa fitur AI "kadang error"
-// dan diam-diam jatuh ke mode cadangan.
-const ATURAN_ANTI_LATEX = `ATURAN PENULISAN PERSAMAAN: JANGAN PERNAH menggunakan notasi/perintah LaTeX
-(seperti \\cdot, \\times, \\frac{a}{b}, ^{2}, _{1}, atau tanda dolar $...$).
-Tulis persamaan dengan simbol Unicode biasa yang langsung terbaca sebagai teks polos, contoh:
-"F = m × a" (bukan "F = m \\cdot a"), "v² " (bukan "v^2"), "ρ = m / V" (bukan "\\frac{m}{V}"),
-gunakan simbol seperti × ÷ ² ³ √ Δ π ρ μ Ω ketika relevan. Pecahan ditulis "a / b" atau "a per b".`;
+// Source LaTeX disimpan sebagai teks; KaTeX lokal merendernya di browser.
+// Delimiter dibatasi agar teks biasa dan JSON tetap stabil.
+const ATURAN_MATEMATIKA = `ATURAN PENULISAN MATEMATIKA:
+- Untuk persamaan/notasi matematis, gunakan LaTeX valid dengan HANYA delimiter \\( ... \\) untuk inline
+  dan \\[ ... \\] untuk blok. Jangan gunakan delimiter dolar.
+- Teks penjelasan biasa tetap memakai Unicode dan bahasa Indonesia.
+- Jangan menaruh HTML di dalam LaTeX. Jangan memakai perintah berisiko seperti \\href, \\htmlClass,
+  \\includegraphics, atau macro buatan sendiri.
+- Jika respons berupa JSON, pastikan backslash LaTeX ter-escape sesuai JSON dan nilai akhirnya tetap
+  menyimpan source LaTeX, bukan HTML hasil render.`;
 
 function getModel(systemInstruction) {
   return genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction });
@@ -69,6 +65,44 @@ exports.socraticReflection = async (req, res) => {
   }
 };
 
+// Tahap refleksi akhir yang sudah digunakan workspace siswa. Endpoint ini
+// melengkapi kontrak UI yang sebelumnya hilang, bukan menambah alur pedagogis.
+exports.metacognitionScaffold = async (req, res) => {
+  const { topik_fisika, jawaban_awal, jawaban_lanjutan } = req.body;
+  if (!jawaban_awal || !jawaban_lanjutan) {
+    return res.status(400).json({ message: 'Jawaban awal dan lanjutan wajib diisi.' });
+  }
+
+  try {
+    const model = getStructuredModel(
+      `Kamu adalah pendamping refleksi metakognitif MeaningEdu. Buat tepat dua pertanyaan singkat dalam bahasa Indonesia:
+      (1) pertanyaan_kesenjangan membantu siswa mengenali perbedaan antara pemahaman awal dan sekarang;
+      (2) pertanyaan_strategi membantu siswa menentukan strategi belajar berikutnya.
+      Jangan memberi jawaban konsep Fisika dan jangan menilai siswa.`,
+      {
+        type: SchemaType.OBJECT,
+        properties: {
+          pertanyaan_kesenjangan: { type: SchemaType.STRING },
+          pertanyaan_strategi: { type: SchemaType.STRING }
+        },
+        required: ['pertanyaan_kesenjangan', 'pertanyaan_strategi']
+      }
+    );
+    const result = await model.generateContent(
+      `Topik: ${topik_fisika || 'Fisika'}\nJawaban awal: ${jawaban_awal}\nJawaban lanjutan: ${jawaban_lanjutan}`
+    );
+    const parsed = JSON.parse((await result.response).text());
+    return res.status(200).json({ ...parsed, source: 'gemini-live' });
+  } catch (error) {
+    console.warn('⚠️ Gemini API Error (metakognisi-scaffold):', error.message, '— Mode cadangan aktif.');
+    return res.status(200).json({
+      pertanyaan_kesenjangan: 'Apa hal terpenting yang berubah dari pemahaman awalmu setelah belajar?',
+      pertanyaan_strategi: 'Langkah apa yang akan kamu lakukan untuk memahami bagian yang masih membingungkan?',
+      source: 'local-fallback-mode'
+    });
+  }
+};
+
 // ================= 2. AI Simplifier Toggle — Siswa =================
 exports.simplifyContent = async (req, res) => {
   const { teks_asli } = req.body;
@@ -76,22 +110,24 @@ exports.simplifyContent = async (req, res) => {
     return res.status(400).json({ message: 'Teks asli tidak boleh kosong.' });
   }
 
+  const matematika = lindungiBlokMatematika(teks_asli);
+
   try {
     const model = getModel(`Kamu adalah AI Simplifier untuk platform MeaningEdu.
       Tulis ulang teks materi Fisika menjadi bahasa Indonesia yang SANGAT sederhana.
       Aturan: kalimat pendek (maks 12 kata), hindari istilah teknis tanpa penjelasan, gunakan analogi sehari-hari,
-      jangan menambah informasi baru. ${ATURAN_ANTI_LATEX}
+      jangan menambah informasi baru. Pertahankan token MEANINGEDU_MATH_BLOCK_N apa adanya dan jangan
+      mengubah, memindahkan, atau menghapus token tersebut.
       Keluarkan HANYA teks hasil sederhana, tanpa embel-embel pembuka.`);
 
-    const result = await model.generateContent(teks_asli);
+    const result = await model.generateContent(matematika.teksTerlindungi);
     const text = (await result.response).text();
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
 
-    return res.status(200).json({ teks_sederhana: text.trim(), source: "gemini-live" });
+    return res.status(200).json({ teks_sederhana: matematika.pulihkan(text.trim()), source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (simplifier):", error.message, "— Mode cadangan aktif.");
-    const kalimatPendek = teks_asli.replace(/([.!?])\s+/g, '$1|').split('|').filter(Boolean).join('\n');
-    return res.status(200).json({ teks_sederhana: kalimatPendek, source: "local-fallback-mode" });
+    return res.status(200).json({ teks_sederhana: teks_asli, source: "local-fallback-mode" });
   }
 };
 
@@ -150,7 +186,7 @@ exports.generateLocalContext = async (req, res) => {
       `Kamu adalah AI Local Context & SDG Project Builder untuk platform MeaningEdu.
       Berdasarkan topik Fisika dan wilayah sekolah, buat draf aktivitas kontekstual berbasis kearifan lokal
       dan isu SDGs setempat. "deskripsi" berisi 2-3 kalimat ide proyek/aktivitas. "pertanyaan_pemantik" berisi
-      1 pertanyaan pemicu rasa ingin tahu siswa. ${ATURAN_ANTI_LATEX}`,
+      1 pertanyaan pemicu rasa ingin tahu siswa. ${ATURAN_MATEMATIKA}`,
       {
         type: SchemaType.OBJECT,
         properties: {
@@ -264,7 +300,7 @@ exports.teachingCopilot = async (req, res) => {
       ${instruksiPedagogis}
       ${instruksiKonteksMateri}
 
-      Bahasa Indonesia yang jelas dan tidak teknis, cocok untuk guru yang bukan lulusan Fisika. ${ATURAN_ANTI_LATEX}
+      Bahasa Indonesia yang jelas dan tidak teknis, cocok untuk guru yang bukan lulusan Fisika. ${ATURAN_MATEMATIKA}
       "panduan_guru" adalah catatan KHUSUS UNTUK GURU (tidak akan dilihat siswa): jelaskan konsep Fisika di balik
       eksperimen ini, hasil/jawaban yang diharapkan, serta tips antisipasi kesalahan umum siswa/guru non-linier.`,
       {
@@ -418,7 +454,7 @@ exports.generateMateriTeks = async (req, res) => {
       Tulis dalam bahasa Indonesia, terstruktur dengan sub-judul singkat per bagian, panjang sedang
       (sekitar 200-350 kata, boleh sedikit lebih panjang kalau memuat contoh perhitungan).
       JANGAN menuliskan langkah-langkah eksperimen atau instruksi praktik — itu bagian terpisah dari materi ini.
-      ${ATURAN_ANTI_LATEX}
+      ${ATURAN_MATEMATIKA}
       Keluarkan HANYA teks materi, tanpa embel-embel pembuka seperti "Berikut adalah...".`);
 
     const prompt = `Topik Fisika: ${topik_fisika}
@@ -475,7 +511,7 @@ exports.generateMateriKelas = async (req, res) => {
             batu, tali, air, dsb), bahasa tidak teknis, cocok untuk guru yang bukan lulusan Fisika dan tanpa
             laboratorium standar.
         Buat juga "judul" materi yang menarik & kontekstual (maks 10 kata).
-        ${ATURAN_ANTI_LATEX}`,
+        ${ATURAN_MATEMATIKA}`,
       {
         type: SchemaType.OBJECT,
         properties: {
