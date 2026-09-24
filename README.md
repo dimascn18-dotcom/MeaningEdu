@@ -83,6 +83,7 @@ Salin `backend/.env.example` menjadi `backend/.env` untuk pengembangan lokal.
 | `BLOB_STORE_ID` | ID Private Blob store; otomatis ketika store terhubung ke project |
 | `VERCEL_OIDC_TOKEN` | Disediakan dan dirotasi Vercel; jangan salin ke source code |
 | `BLOB_READ_WRITE_TOKEN` | Fallback pengembangan di luar Vercel bila OIDC tidak tersedia |
+| `CRON_SECRET` | Secret acak untuk melindungi cron harian pembersihan PDF yatim; atur di project backend |
 | `ADMIN_NAME` | Nama admin untuk skrip provisioning |
 | `ADMIN_EMAIL` | Email admin |
 | `ADMIN_PASSWORD` | Kata sandi awal admin, minimal 12 karakter |
@@ -143,16 +144,17 @@ Delimiter dolar tidak digunakan. KaTeX berjalan dengan `trust: false`, dan AI Si
 5. Backend memeriksa ownership guru atau enrollment siswa sebelum menerbitkan signed `GET` selama lima menit.
 
 PDF dibatasi 10 MB. MIME dan ekstensi diperiksa di browser, signed upload, serta backend. PDF tidak tersedia offline dan signed URL tidak disimpan di database.
+Tahap penyelesaian upload harus terjadi dalam 24 jam. Cron backend pukul 03:00 UTC memeriksa objek `materi/` yang berumur minimal 48 jam, lalu menghapus hanya PDF dengan pathname resmi yang tidak tercatat di Neon, menggunakan pemeriksaan ETag. Tanpa `CRON_SECRET` cron menolak permintaan dan tidak menghapus apa pun. Setelah deployment, periksa hasil dan log cron sebelum mengandalkannya untuk pembersihan rutin.
 
 ## Batas dukungan offline
 
 Offline MeaningEdu 01 bersifat parsial:
 
 - Halaman, CSS, JavaScript, dan KaTeX dapat dibuka dari Cache Storage setelah pernah dimuat.
-- Jurnal yang sudah disusun dapat disimpan di IndexedDB dan disinkronkan ketika koneksi tersedia.
+- Jurnal yang sudah disusun dapat disimpan di IndexedDB tanpa JWT. Sinkronisasi memerlukan workspace siswa dengan akun yang sama terbuka dan login; bila semua tab tertutup, pengiriman menunggu sampai workspace dibuka kembali dengan koneksi tersedia.
 - Kelas, aktivitas, daftar materi, AI, dashboard MLI, dan PDF masih membutuhkan backend online.
 - PDF tidak dimasukkan ke Cache Storage.
-- Background Sync tidak tersedia di semua browser; halaman juga memicu retry saat dibuka atau kembali online.
+- Background Sync tidak tersedia di semua browser; halaman juga memicu retry saat dibuka atau kembali online. Antrean akun lain di perangkat bersama tidak dikirim memakai sesi akun yang sedang aktif.
 
 ## Pengujian
 
@@ -174,7 +176,7 @@ Workflow `.github/workflows/ci.yml` menjalankan `npm ci`, unit/integration test 
 Gunakan dua project Vercel dari repository yang sama:
 
 1. **Backend** — Root Directory `backend`, environment sesuai tabel di atas, dan Private Blob terhubung ke project.
-2. **Frontend** — Root Directory repository (`.`), konfigurasi statis dari `vercel.json`.
+2. **Frontend** — Root Directory repository (`.`), konfigurasi statis dari `vercel.json` yang hanya membangun HTML, CSS, JavaScript, manifest, dan aset KaTeX; `backend/` tidak boleh tersedia sebagai file publik.
 
 Urutan rilis aman:
 
@@ -184,5 +186,7 @@ Urutan rilis aman:
 4. pastikan `config.js` menunjuk deployment backend yang benar;
 5. deploy frontend;
 6. smoke-test registrasi siswa, permohonan guru, approval admin, jurnal online/offline, rumus, dan PDF lintas peran.
+
+Periksa juga bahwa URL frontend `/backend/package.json` merespons 404, dan hasil cron `/internal/cleanup-orphan-pdfs` tidak bisa diakses tanpa secret. Pengujian CI memakai stub Gemini/Blob; pengujian dengan kredensial production serta status GitHub Support untuk riwayat lama harus diverifikasi terpisah.
 
 Jangan commit `.env`, token Blob, connection string database, JWT secret, atau API key.

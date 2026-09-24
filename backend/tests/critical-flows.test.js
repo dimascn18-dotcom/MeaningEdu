@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
@@ -181,9 +182,84 @@ test('antrean jurnal offline terikat ke akun dan hanya memiliki satu handler syn
   const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
   assert.match(workspace, /siswa_id:\s*user\?\.id/);
-  assert.match(workspace, /Number\(jurnal\.siswa_id\) === Number\(siswaId\)/);
+  const queuedPayload = workspace.match(/const payload = \{([\s\S]*?)\n      \};/)[1];
+  assert.doesNotMatch(queuedPayload, /token:/);
+  assert.match(workspace, /JOURNAL_AUTH_REQUEST/);
+  assert.match(sw, /sessions\.find\(item => item\.siswa_id === Number\(jurnal\.siswa_id\)\)/);
+  assert.match(sw, /cursor\.update\(jurnalTanpaToken\)/);
   assert.equal((sw.match(/addEventListener\(['"]sync['"]/g) || []).length, 1);
   assert.match(sw, /client_submission_id:\s*jurnal\.client_submission_id/);
+});
+
+test('deployment frontend hanya membangun aset publik', () => {
+  const root = path.join(__dirname, '..', '..');
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const sources = config.builds.map(build => build.src);
+  assert.deepEqual(sources, ['*.html', '*.css', '*.js', 'manifest.json', 'vendor/katex/**']);
+  assert.equal(sources.some(src => src.startsWith('backend/') || src.startsWith('**')), false);
+});
+
+test('endpoint cleanup PDF memerlukan secret cron', async () => {
+  const original = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = 'secret-for-tests';
+  try {
+    const response = await request(app).get('/internal/cleanup-orphan-pdfs');
+    assert.equal(response.status, 401);
+  } finally {
+    if (original === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = original;
+  }
+});
+
+test('sync PWA tidak memakai token antrean dan tetap memproses akun lain saat satu sesi kedaluwarsa', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
+  const sent = [];
+  const deleted = [];
+  const notices = [];
+  const client = id => ({ postMessage(message, ports) {
+    if (message.type === 'JOURNAL_AUTH_REQUEST') {
+      ports[0].postMessage({ siswa_id: id, token: `fresh-${id}` });
+    }
+  } });
+  const sandbox = {
+    URL, setTimeout, clearTimeout,
+    importScripts() {},
+    self: {
+      MEANINGEDU_CONFIG: { API_BASE_URL: 'https://api.example.test' },
+      location: { origin: 'https://frontend.example.test' },
+      addEventListener() {},
+      clients: { async matchAll() { return [client(1), client(2)]; } }
+    },
+    MessageChannel: class {
+      constructor() {
+        this.port1 = { onmessage: null, close() {} };
+        this.port2 = { postMessage: data => this.port1.onmessage({ data }) };
+      }
+    },
+    fetch: async (_url, options) => {
+      sent.push(JSON.parse(options.body).client_submission_id);
+      assert.notEqual(options.headers.Authorization, 'Bearer stale-token');
+      return { ok: options.headers.Authorization === 'Bearer fresh-2', status: 401 };
+    },
+    console: { log() {} }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(source, sandbox);
+  sandbox.journals = [
+    { id: 1, siswa_id: 1, aktivitas_id: 4, client_submission_id: 'one', token: 'stale-token' },
+    { id: 2, siswa_id: 1, aktivitas_id: 4, client_submission_id: 'two', token: 'stale-token' },
+    { id: 3, siswa_id: 2, aktivitas_id: 4, client_submission_id: 'three', token: 'stale-token' }
+  ];
+  sandbox.deleted = deleted;
+  sandbox.notices = notices;
+  vm.runInContext(`bukaDatabase = async () => ({});
+    bacaSemuaJurnal = async () => journals;
+    hapusJurnal = async (_db, id) => deleted.push(id);
+    beriTahuHalaman = async message => notices.push(message.type);`, sandbox);
+  await vm.runInContext('sinkronisasikanJurnalTunda()', sandbox);
+  assert.deepEqual(sent, ['one', 'three']);
+  assert.deepEqual(deleted, [3]);
+  assert.deepEqual(notices, ['JOURNAL_SYNC_AUTH_REQUIRED', 'JOURNAL_SYNC_COMPLETE']);
 });
 
 test('upload PDF mempertahankan pathname yang diotorisasi server', () => {

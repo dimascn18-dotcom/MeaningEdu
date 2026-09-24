@@ -5,9 +5,9 @@ const API_BASE_URL = self.MEANINGEDU_CONFIG.API_BASE_URL;
 const API_ORIGIN = new URL(API_BASE_URL).origin;
 // PENTING: naikkan angka versi ini SETIAP kali Anda deploy perubahan baru.
 // Ini yang memaksa browser membuang cache lama tanpa perlu Ctrl+F5.
-const CACHE_NAME = 'meaningedu-v5';
+const CACHE_NAME = 'meaningedu-v6';
 const DB_NAME = 'MeaningEduDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const JOURNAL_STORE = 'jurnalOffline';
 const ASSETS = [
   '/',
@@ -129,6 +129,15 @@ function bukaDatabase() {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(JOURNAL_STORE)) {
         db.createObjectStore(JOURNAL_STORE, { keyPath: 'id', autoIncrement: true });
+      } else {
+        const cursorRequest = event.target.transaction.objectStore(JOURNAL_STORE).openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          const { token, ...jurnalTanpaToken } = cursor.value;
+          if (token !== undefined) cursor.update(jurnalTanpaToken);
+          cursor.continue();
+        };
       }
     };
     request.onsuccess = event => resolve(event.target.result);
@@ -171,18 +180,50 @@ async function beriTahuHalaman(message) {
   clients.forEach(client => client.postMessage(message));
 }
 
+// Token hanya boleh hidup di halaman yang sedang login. Background Sync ketika
+// semua tab sudah tertutup menunggu halaman berikutnya dibuka kembali.
+async function mintaSesiHalaman(client) {
+  return new Promise(resolve => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => {
+      channel.port1.close();
+      resolve(null);
+    }, 2000);
+    channel.port1.onmessage = event => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      const { siswa_id, token } = event.data || {};
+      resolve(Number.isInteger(Number(siswa_id)) && siswa_id && typeof token === 'string' && token
+        ? { siswa_id: Number(siswa_id), token }
+        : null);
+    };
+    try {
+      client.postMessage({ type: 'JOURNAL_AUTH_REQUEST' }, [channel.port2]);
+    } catch (_) {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(null);
+    }
+  });
+}
+
 async function sinkronisasikanJurnalTunda() {
   const db = await bukaDatabase();
   const semuaJurnal = await bacaSemuaJurnal(db);
+  if (!semuaJurnal.length) return;
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  const sessions = (await Promise.all(clients.map(mintaSesiHalaman))).filter(Boolean);
   let jumlahTerkirim = 0;
 
   for (const jurnal of semuaJurnal) {
+    const session = sessions.find(item => item.siswa_id === Number(jurnal.siswa_id));
+    if (!session) continue;
     try {
       const response = await fetch(`${API_BASE_URL}/jurnal/${jurnal.aktivitas_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jurnal.token}`
+          'Authorization': `Bearer ${session.token}`
         },
         body: JSON.stringify({
           client_submission_id: jurnal.client_submission_id,
@@ -201,7 +242,11 @@ async function sinkronisasikanJurnalTunda() {
 
       if (response.status === 401 || response.status === 403) {
         await beriTahuHalaman({ type: 'JOURNAL_SYNC_AUTH_REQUIRED' });
-        return;
+        // Sesi akun ini tidak valid; jangan hentikan jurnal akun lain.
+        for (let i = sessions.length - 1; i >= 0; i--) {
+          if (sessions[i].siswa_id === session.siswa_id) sessions.splice(i, 1);
+        }
+        continue;
       }
 
       jurnal.attempts = (jurnal.attempts || 0) + 1;

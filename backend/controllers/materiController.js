@@ -190,6 +190,13 @@ const storedContentType = String(metadata.contentType || '')
 
 const storedSize = Number(metadata.size);
 const expectedSize = Number(ukuran_byte);
+const uploadAge = Date.now() - new Date(metadata.uploadedAt).getTime();
+
+// Pembersih membuang objek yatim setelah 48 jam. Completion harus selesai
+// jauh sebelum itu agar tidak berlomba dengan penghapusan terjadwal.
+if (!Number.isFinite(uploadAge) || uploadAge < -5 * 60 * 1000 || uploadAge > 24 * 60 * 60 * 1000) {
+  return res.status(400).json({ message: 'Upload PDF telah kedaluwarsa. Unggah kembali.' });
+}
 
 console.log('Verifikasi PDF:', {
   path_cocok: storedPathname === blob_pathname,

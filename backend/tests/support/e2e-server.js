@@ -85,7 +85,8 @@ async function start() {
     uploadedPdfs.set(url, {
       pathname,
       contentType: 'application/pdf',
-      size: req.body.length
+      size: req.body.length,
+      uploadedAt: new Date()
     });
     res.status(200).json({ pathname, url });
   });
