@@ -284,6 +284,12 @@
           <label class="q-label" id="labelStrategi" style="margin-top:14px;">Menyiapkan pertanyaan...</label>
           <textarea id="jawabanStrategi" rows="2" placeholder="Tuliskan rencana/strategimu..."></textarea>
 
+          <p class="q-label">Micro-survey setelah aktivitas (1 = sangat tidak setuju; 5 = sangat setuju). Kosong berarti dimensi terkait belum dapat dihitung.</p>
+          <label class="q-label" for="mliA1">Saya merasa memiliki pilihan yang nyata tentang cara saya belajar pada aktivitas ini.</label><select id="mliA1"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliA2">Saya merasa memiliki kendali atas cara saya menjalani proses belajar pada aktivitas ini.</label><select id="mliA2"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliC1">Saya yakin dapat menjelaskan konsep yang dipelajari pada aktivitas ini dengan kata-kata saya sendiri.</label><select id="mliC1"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliC2">Saya yakin dapat menggunakan konsep ini untuk menghadapi masalah atau situasi yang serupa.</label><select id="mliC2"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+
           <button id="btnSimpanJurnal">Simpan Jurnal Akhir</button>
         </div>
       </div>
@@ -754,6 +760,10 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           jawaban_awal: payload.jawaban_awal,
           pertanyaan_ai: payload.pertanyaan_ai,
           jawaban_lanjutan: payload.jawaban_lanjutan,
+          jawaban_kesenjangan: payload.jawaban_kesenjangan,
+          jawaban_strategi: payload.jawaban_strategi,
+          mli_a1: payload.mli_a1, mli_a2: payload.mli_a2,
+          mli_c1: payload.mli_c1, mli_c2: payload.mli_c2,
           durasi_belajar: payload.durasi_belajar,
           client_submission_id: payload.client_submission_id
         })
@@ -837,6 +847,12 @@ ${jawabanStrategi}`;
         jawaban_awal: dataJurnalSementara.jawaban_awal,
         pertanyaan_ai: dataJurnalSementara.pertanyaan_ai,
         jawaban_lanjutan: dataJurnalSementara.jawaban_lanjutan,
+        jawaban_kesenjangan: jawabanKesenjangan,
+        jawaban_strategi: jawabanStrategi,
+        mli_a1: Number(document.getElementById('mliA1').value) || null,
+        mli_a2: Number(document.getElementById('mliA2').value) || null,
+        mli_c1: Number(document.getElementById('mliC1').value) || null,
+        mli_c2: Number(document.getElementById('mliC2').value) || null,
         durasi_belajar: durasiDetik,
         aktivitas_id: aktivitasTerpilih.id,
         siswa_id: user?.id,

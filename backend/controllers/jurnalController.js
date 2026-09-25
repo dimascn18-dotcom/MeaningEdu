@@ -12,7 +12,8 @@ const { ambilAktivitasDenganKelas, siswaTerdaftarDiKelas } = require('../utils/o
 // perlu langkah manual tambahan.
 exports.simpanJurnal = async (req, res) => {
   const { aktivitas_id } = req.params;
-  const { jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id } = req.body;
+  const { jawaban_awal, pertanyaan_ai, jawaban_lanjutan, jawaban_kesenjangan, jawaban_strategi,
+    mli_a1, mli_a2, mli_c1, mli_c2, durasi_belajar, client_submission_id } = req.body;
   const siswa_id = req.user.id;
   const peran = req.user.peran;
 
@@ -22,6 +23,10 @@ exports.simpanJurnal = async (req, res) => {
   }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(client_submission_id || '')) {
     return res.status(400).json({ message: 'ID pengiriman jurnal tidak valid.' });
+  }
+  const survey = [mli_a1, mli_a2, mli_c1, mli_c2];
+  if (survey.some(v => v !== undefined && v !== null && (!Number.isInteger(v) || v < 1 || v > 5))) {
+    return res.status(400).json({ message: 'Jawaban micro-survey harus bilangan bulat 1–5.' });
   }
 
   try {
@@ -39,11 +44,13 @@ exports.simpanJurnal = async (req, res) => {
 
     const newJurnal = await pool.query(
       `INSERT INTO jurnal_refleksi
-       (siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id,
+        jawaban_kesenjangan, jawaban_strategi, mli_a1, mli_a2, mli_c1, mli_c2)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (siswa_id, client_submission_id) WHERE client_submission_id IS NOT NULL
        DO NOTHING RETURNING *`,
-      [siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id]
+      [siswa_id, aktivitas_id, jawaban_awal, pertanyaan_ai, jawaban_lanjutan, durasi_belajar, client_submission_id,
+        jawaban_kesenjangan || null, jawaban_strategi || null, ...survey.map(v => v ?? null)]
     );
 
     if (newJurnal.rows.length === 0) {
@@ -65,12 +72,8 @@ exports.simpanJurnal = async (req, res) => {
     try {
       const topik_fisika = aktivitas.topik_fisika || aktivitas.judul || null;
       skorMLI = await hitungDanSimpanSkorMLI({
-        aktivitas_id,
-        siswa_id,
-        jawaban_awal,
-        pertanyaan_ai,
-        jawaban_lanjutan,
-        durasi_belajar,
+        ...newJurnal.rows[0],
+        aktivitas_id, siswa_id,
         topik_fisika
       });
     } catch (scoringError) {

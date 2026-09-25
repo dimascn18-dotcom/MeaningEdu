@@ -35,11 +35,15 @@ async function verifyMeaningEdu01Schema(client) {
       AND (table_name, column_name) IN (
         ('users', 'status_akun'),
         ('jurnal_refleksi', 'client_submission_id'),
+        ('jurnal_refleksi', 'mli_a1'),
+        ('jurnal_refleksi', 'jawaban_kesenjangan'),
+        ('mli_v2_observations', 'formula_version'),
+        ('mli_v2_observations', 'evidence_status'),
         ('mli_scores', 'created_at'),
         ('materi_kelas', 'blob_pathname')
       )
   `);
-  assert.equal(columns.rowCount, 4);
+  assert.equal(columns.rowCount, 8);
 
   const indexes = await client.query(`
     SELECT indexname
@@ -194,6 +198,8 @@ test('migrasi berhasil dan idempoten pada PostgreSQL fresh serta legacy', {
         judul: 'Materi Legacy',
         status_akun: 'aktif'
       });
+      const legacyNotConverted = await migratedLegacy.query('SELECT COUNT(*)::int AS total FROM mli_v2_observations');
+      assert.equal(legacyNotConverted.rows[0].total, 0);
     } finally {
       await migratedLegacy.end();
     }
