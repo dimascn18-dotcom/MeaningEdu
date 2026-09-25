@@ -61,7 +61,8 @@ exports.lihatDashboardMLI = async (req, res) => {
     const paths = await pool.query(`
       SELECT l.siswa_id, ja.label, l.dipilih_at FROM log_pilihan_jalur l
       JOIN jalur_aktivitas ja ON ja.id = l.jalur_id AND ja.aktivitas_id = l.aktivitas_id
-      WHERE l.aktivitas_id = $1 ORDER BY l.dipilih_at`, [activity.id]);
+      WHERE l.aktivitas_id = $1 AND l.event_type = 'explicit_choice'
+      ORDER BY l.dipilih_at`, [activity.id]);
     const complete = result.rows.filter(row => row.status === 'COMPLETE');
     const coverage = result.rows.length ? complete.length / result.rows.length : 0;
     res.json({

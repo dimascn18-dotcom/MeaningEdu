@@ -852,7 +852,7 @@ ${data.pertanyaan_kesimpulan}`;
                   return `<li><strong>${escapeHtml(d.label)}:</strong> ${d.score == null ? escapeHtml(d.status) : d.score.toFixed(1) + '/100'}; ${escapeHtml(d.method)}${indicators ? `<ul>${indicators}</ul>` : ''}</li>`;
                 }).join('');
                 const support = r.supporting_data || {};
-                const supportText = support.note ? `<p>${escapeHtml(support.note)} Konteks aktivitas: ${escapeHtml(support.pertanyaan_pemantik || 'tidak tersedia')}. Jalur dipilih: ${(support.riwayat_jalur || []).map(p => escapeHtml(p.label)).join(', ') || 'tidak tercatat'}.</p>` : '';
+                const supportText = support.note ? `<p>${escapeHtml(support.note)} Konteks aktivitas: ${escapeHtml(support.pertanyaan_pemantik || 'tidak tersedia')}. Pilihan jalur eksplisit: ${(support.riwayat_jalur || []).map(p => escapeHtml(p.label)).join(', ') || 'tidak tercatat'}.</p>` : '';
                 html += `<td><details><summary>Lihat data &amp; bukti</summary><p>${escapeHtml(r.explanation || '')}</p><ul>${details}</ul>${supportText}<small>${escapeHtml(r.disclaimer || '')}</small></details></td>`;
               }
               else html += `<td>${escapeHtml(val ?? '-')}</td>`;

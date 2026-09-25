@@ -39,11 +39,12 @@ async function verifyMeaningEdu01Schema(client) {
         ('jurnal_refleksi', 'jawaban_kesenjangan'),
         ('mli_v2_observations', 'formula_version'),
         ('mli_v2_observations', 'evidence_status'),
+        ('log_pilihan_jalur', 'event_type'),
         ('mli_scores', 'created_at'),
         ('materi_kelas', 'blob_pathname')
       )
   `);
-  assert.equal(columns.rowCount, 8);
+  assert.equal(columns.rowCount, 9);
 
   const indexes = await client.query(`
     SELECT indexname
@@ -52,12 +53,14 @@ async function verifyMeaningEdu01Schema(client) {
       AND indexname IN (
         'uq_jurnal_client_submission',
         'idx_mli_scores_created_at',
-        'uq_materi_blob_pathname'
+        'uq_materi_blob_pathname',
+        'idx_log_pilihan_explicit_activity'
       )
   `);
   assert.deepEqual(
     indexes.rows.map(row => row.indexname).sort(),
-    ['idx_mli_scores_created_at', 'uq_jurnal_client_submission', 'uq_materi_blob_pathname']
+    ['idx_log_pilihan_explicit_activity', 'idx_mli_scores_created_at',
+      'uq_jurnal_client_submission', 'uq_materi_blob_pathname']
   );
 
   const migrationCount = await client.query('SELECT COUNT(*)::int AS total FROM schema_migrations');
@@ -91,6 +94,14 @@ const legacySchema = `
     template_pedagogis VARCHAR(50),
     pertanyaan_pemantik TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE log_pilihan_jalur (
+    id SERIAL PRIMARY KEY,
+    siswa_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    aktivitas_id INTEGER NOT NULL REFERENCES aktivitas(id) ON DELETE CASCADE,
+    jalur_id INTEGER NOT NULL,
+    dipilih_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
 
   CREATE TABLE jurnal_refleksi (
@@ -135,6 +146,8 @@ const legacySchema = `
   VALUES (1, 'Kelas Legacy', 'Energi');
   INSERT INTO aktivitas (kelas_id, judul)
   VALUES (1, 'Aktivitas Legacy');
+  INSERT INTO log_pilihan_jalur (siswa_id, aktivitas_id, jalur_id)
+  VALUES (2, 1, 1);
   INSERT INTO jurnal_refleksi (siswa_id, aktivitas_id, jawaban_awal)
   VALUES (2, 1, 'Jawaban tetap tersimpan');
   INSERT INTO mli_scores (
@@ -200,6 +213,8 @@ test('migrasi berhasil dan idempoten pada PostgreSQL fresh serta legacy', {
       });
       const legacyNotConverted = await migratedLegacy.query('SELECT COUNT(*)::int AS total FROM mli_v2_observations');
       assert.equal(legacyNotConverted.rows[0].total, 0);
+      const oldPath = await migratedLegacy.query('SELECT event_type FROM log_pilihan_jalur WHERE id = 1');
+      assert.equal(oldPath.rows[0].event_type, 'legacy_unknown');
     } finally {
       await migratedLegacy.end();
     }

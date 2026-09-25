@@ -100,7 +100,10 @@ test('dashboard menolak guru lain dan hanya membuka rata-rata dengan coverage 70
       { enrolled_siswa_id: 1, nama_siswa: 'A', id: 11, status: 'COMPLETE', skor_akhir: '60', evidence_status: {} },
       { enrolled_siswa_id: 2, nama_siswa: 'B', id: 12, status: 'INCOMPLETE', skor_akhir: null, evidence_status: {} }
     ] };
-    if (sql.includes('FROM log_pilihan_jalur l')) return { rows: [{ siswa_id: 1, label: 'Eksperimen' }] };
+    if (sql.includes('FROM log_pilihan_jalur l')) {
+      assert.match(sql, /l\.event_type = 'explicit_choice'/);
+      return { rows: [{ siswa_id: 1, label: 'Eksperimen' }] };
+    }
     throw new Error(sql);
   };
   const result = await request(app).get('/mli/dashboard/8').set(auth(9));
@@ -174,4 +177,22 @@ test('guru lain tidak dapat mengulang analisis tertunda', async () => {
   };
   const result = await request(app).post('/mli/retry/8').set(auth(7));
   assert.equal(result.status, 403);
+});
+
+test('klik jalur siswa disimpan sebagai explicit_choice, bukan event default', async () => {
+  handle = (sql, values) => {
+    if (sql.includes('FROM users WHERE id')) return { rows: [{ id: 2, peran: 'siswa', status_akun: 'aktif' }] };
+    if (sql.includes('FROM aktivitas a')) return { rows: [{ id: 8, kelas_id: 3, guru_id: 9 }] };
+    if (sql.includes('SELECT 1 FROM kelas_siswa')) return { rows: [{ ok: 1 }] };
+    if (sql.includes('FROM jalur_aktivitas WHERE id')) return { rows: [{ id: 12, aktivitas_id: 8 }] };
+    if (sql.includes('INSERT INTO log_pilihan_jalur')) {
+      assert.deepEqual(values, [2, '8', 12]);
+      assert.match(sql, /'explicit_choice'/);
+      return { rows: [{ id: 21, event_type: 'explicit_choice' }] };
+    }
+    throw new Error(sql);
+  };
+  const result = await request(app).post('/aktivitas/8/pilih-jalur').set(auth(2)).send({ jalur_id: 12 });
+  assert.equal(result.status, 201);
+  assert.equal(result.body.data.event_type, 'explicit_choice');
 });

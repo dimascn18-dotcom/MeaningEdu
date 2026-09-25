@@ -528,21 +528,22 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
         tab.addEventListener('click', () => {
           container.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
-          pilihJalur(j);
+          pilihJalur(j, true);
         });
         container.appendChild(tab);
       });
-      // Tampilkan jalur pertama sebagai default + catat sebagai pilihan awal
-      pilihJalur(daftarJalur[0]);
+      // Pembukaan jalur default adalah tindakan aplikasi, bukan pilihan siswa.
+      pilihJalur(daftarJalur[0], false);
     }
 
-    function pilihJalur(jalurObj) {
+    function pilihJalur(jalurObj, explicitChoice) {
       teksAsliMateri = jalurObj.konten || '';
       simplifierAktif = false;
       document.getElementById('btnSimplifier').classList.remove('active');
       document.getElementById('materiContent').textContent = teksAsliMateri;
 
-      // Catat pilihan jalur ke server — dasar data Otonomi & Keterlibatan MLI
+      if (!explicitChoice) return;
+      // Hanya klik siswa yang tercatat sebagai pilihan eksplisit.
       fetchWithAuth(`/aktivitas/${aktivitasTerpilih.id}/pilih-jalur`, {
         method: 'POST',
         body: JSON.stringify({ jalur_id: jalurObj.id })
@@ -827,19 +828,6 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       const btn = document.getElementById('btnSimpanJurnal');
       btn.textContent = 'Menyimpan...';
       btn.disabled = true;
-
-      // Gabungkan refleksi lanjutan (tahap 2) + scaffold metakognisi (tahap 3) jadi
-      // satu teks jawaban_lanjutan — tidak perlu migrasi kolom baru, NLP Scoring
-      // Engine tetap membaca ini sebagai satu kesatuan teks refleksi.
-      const labelKesenjangan = document.getElementById('labelKesenjangan').textContent;
-      const labelStrategi = document.getElementById('labelStrategi').textContent;
-      dataJurnalSementara.jawaban_lanjutan = `${dataJurnalSementara.jawaban_lanjutan}
-
-${labelKesenjangan}
-${jawabanKesenjangan}
-
-${labelStrategi}
-${jawabanStrategi}`;
 
       const durasiDetik = waktuMulaiBelajar ? Math.round((Date.now() - waktuMulaiBelajar) / 1000) : 0;
 
