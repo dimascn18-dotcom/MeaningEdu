@@ -1,6 +1,6 @@
 # MeaningEdu
 
-MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, jurnal refleksi, AI pendamping, serta analitik Meaningful Learning Index (MLI). Repository ini berisi baseline **MeaningEdu 01 — Stabilization & Baseline Completion**.
+MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, jurnal refleksi, AI pendamping, serta analitik Meaningful Learning Index (MLI). Repository ini berisi baseline MeaningEdu 01 dan implementasi MLI v2 MeaningEdu 02.
 
 ## Arsitektur aktif
 
@@ -28,7 +28,9 @@ flowchart LR
 - Resource kelas, aktivitas, jurnal, materi, MLI, AI, dan PDF dibatasi berdasarkan peran, ownership, serta enrollment.
 - Persamaan Fisika dirender dengan KaTeX lokal menggunakan `\(...\)` dan `\[...\]`, termasuk saat aset PWA digunakan offline.
 - Guru dapat mengunggah PDF ke Blob privat; hanya guru pemilik kelas dan siswa terdaftar yang dapat meminta URL baca sementara.
-- MLI scoring tidak diubah. Endpoint publik untuk menulis skor manual dihapus; scoring tetap dijalankan layanan internal setelah jurnal tersimpan.
+- MLI v2 (`MLI-v2.0-EW`) memakai dua butir micro-survey untuk Otonomi dan Persepsi Kompetensi; Gemini hanya mengode dua indikator rubrik 0–3 beserta kutipan untuk masing-masing Relevansi, Keterlibatan, dan Metakognisi. Setiap dimensi berbobot 20%. Data hilang menghasilkan `null`, bukan nol. Kegagalan analisis teks menjadi `PENDING_ANALYSIS` dan dapat dicoba ulang oleh guru. Skor v1 tidak masuk dashboard atau tren v2.
+- Tab materi pertama ditampilkan otomatis tanpa log pilihan. Klik siswa dicatat sebagai `explicit_choice`; log historis tanpa penanda tetap `legacy_unknown` dan tidak disajikan sebagai pilihan eksplisit. Jawaban refleksi lanjutan, kesenjangan pemahaman, dan strategi disimpan pada kolom terpisah; bukti R/E hanya boleh berasal dari refleksi awal/lanjutan, sedangkan M dari kesenjangan/strategi.
+- Rata-rata MLI kelas hanya ditampilkan ketika paling sedikit 70% siswa terdaftar memiliki observasi lengkap. Tren mingguan menggunakan observasi lengkap terbaru per siswa dan aktivitas pada minggu tersebut; versi formula, status cakupan, rincian survei dan bukti teks tersedia untuk guru. Angka ini indeks prototipe, bukan persentase kemampuan atau alat psikometrik tervalidasi.
 
 ## Struktur penting
 
@@ -163,7 +165,7 @@ npx playwright install chromium
 TEST_DATABASE_URL="postgresql://..." npm run test:e2e
 ```
 
-`npm test` mencakup registrasi dan persetujuan guru, status akun, role enforcement, ownership PDF, enrollment siswa, idempotensi jurnal, penutupan endpoint skor MLI manual, perlindungan source LaTeX, serta precache KaTeX. Bila `TEST_DATABASE_URL` tersedia, suite yang sama juga membuat database disposable fresh dan legacy, menjalankan migration dua kali, memeriksa schema akhir, lalu menghapus database tersebut.
+`npm test` mencakup alur MeaningEdu 01 dan MLI v2 (formula, data hilang, validasi kutipan, cakupan kelas, tren, otorisasi, kegagalan Gemini). Bila `TEST_DATABASE_URL` tersedia, suite yang sama membuat database disposable fresh dan legacy, menjalankan migration dua kali, memeriksa schema akhir, lalu menghapus database tersebut.
 
 `npm run test:e2e` menjalankan Chromium terhadap frontend dan Express API nyata dengan PostgreSQL test. Integrasi Gemini dan Private Blob diganti stub deterministik khusus test; route aplikasi, JWT, ownership/enrollment, penulisan metadata, dan rendering browser tetap menggunakan implementasi production. Skenario membuktikan output rumus AI dirender KaTeX tanpa delimiter mentah, upload PDF mencapai `/pdf/complete`, siswa enrolled dapat membuka PDF, dan siswa non-enrolled menerima `403`.
 

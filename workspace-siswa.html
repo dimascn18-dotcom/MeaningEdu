@@ -284,6 +284,12 @@
           <label class="q-label" id="labelStrategi" style="margin-top:14px;">Menyiapkan pertanyaan...</label>
           <textarea id="jawabanStrategi" rows="2" placeholder="Tuliskan rencana/strategimu..."></textarea>
 
+          <p class="q-label">Micro-survey setelah aktivitas (1 = sangat tidak setuju; 5 = sangat setuju). Kosong berarti dimensi terkait belum dapat dihitung.</p>
+          <label class="q-label" for="mliA1">Saya merasa memiliki pilihan yang nyata tentang cara saya belajar pada aktivitas ini.</label><select id="mliA1"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliA2">Saya merasa memiliki kendali atas cara saya menjalani proses belajar pada aktivitas ini.</label><select id="mliA2"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliC1">Saya yakin dapat menjelaskan konsep yang dipelajari pada aktivitas ini dengan kata-kata saya sendiri.</label><select id="mliC1"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          <label class="q-label" for="mliC2">Saya yakin dapat menggunakan konsep ini untuk menghadapi masalah atau situasi yang serupa.</label><select id="mliC2"><option value="">Belum dijawab</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+
           <button id="btnSimpanJurnal">Simpan Jurnal Akhir</button>
         </div>
       </div>
@@ -522,21 +528,22 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
         tab.addEventListener('click', () => {
           container.querySelectorAll('.jalur-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
-          pilihJalur(j);
+          pilihJalur(j, true);
         });
         container.appendChild(tab);
       });
-      // Tampilkan jalur pertama sebagai default + catat sebagai pilihan awal
-      pilihJalur(daftarJalur[0]);
+      // Pembukaan jalur default adalah tindakan aplikasi, bukan pilihan siswa.
+      pilihJalur(daftarJalur[0], false);
     }
 
-    function pilihJalur(jalurObj) {
+    function pilihJalur(jalurObj, explicitChoice) {
       teksAsliMateri = jalurObj.konten || '';
       simplifierAktif = false;
       document.getElementById('btnSimplifier').classList.remove('active');
       document.getElementById('materiContent').textContent = teksAsliMateri;
 
-      // Catat pilihan jalur ke server — dasar data Otonomi & Keterlibatan MLI
+      if (!explicitChoice) return;
+      // Hanya klik siswa yang tercatat sebagai pilihan eksplisit.
       fetchWithAuth(`/aktivitas/${aktivitasTerpilih.id}/pilih-jalur`, {
         method: 'POST',
         body: JSON.stringify({ jalur_id: jalurObj.id })
@@ -754,6 +761,10 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           jawaban_awal: payload.jawaban_awal,
           pertanyaan_ai: payload.pertanyaan_ai,
           jawaban_lanjutan: payload.jawaban_lanjutan,
+          jawaban_kesenjangan: payload.jawaban_kesenjangan,
+          jawaban_strategi: payload.jawaban_strategi,
+          mli_a1: payload.mli_a1, mli_a2: payload.mli_a2,
+          mli_c1: payload.mli_c1, mli_c2: payload.mli_c2,
           durasi_belajar: payload.durasi_belajar,
           client_submission_id: payload.client_submission_id
         })
@@ -818,25 +829,18 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       btn.textContent = 'Menyimpan...';
       btn.disabled = true;
 
-      // Gabungkan refleksi lanjutan (tahap 2) + scaffold metakognisi (tahap 3) jadi
-      // satu teks jawaban_lanjutan — tidak perlu migrasi kolom baru, NLP Scoring
-      // Engine tetap membaca ini sebagai satu kesatuan teks refleksi.
-      const labelKesenjangan = document.getElementById('labelKesenjangan').textContent;
-      const labelStrategi = document.getElementById('labelStrategi').textContent;
-      dataJurnalSementara.jawaban_lanjutan = `${dataJurnalSementara.jawaban_lanjutan}
-
-${labelKesenjangan}
-${jawabanKesenjangan}
-
-${labelStrategi}
-${jawabanStrategi}`;
-
       const durasiDetik = waktuMulaiBelajar ? Math.round((Date.now() - waktuMulaiBelajar) / 1000) : 0;
 
       const payload = {
         jawaban_awal: dataJurnalSementara.jawaban_awal,
         pertanyaan_ai: dataJurnalSementara.pertanyaan_ai,
         jawaban_lanjutan: dataJurnalSementara.jawaban_lanjutan,
+        jawaban_kesenjangan: jawabanKesenjangan,
+        jawaban_strategi: jawabanStrategi,
+        mli_a1: Number(document.getElementById('mliA1').value) || null,
+        mli_a2: Number(document.getElementById('mliA2').value) || null,
+        mli_c1: Number(document.getElementById('mliC1').value) || null,
+        mli_c2: Number(document.getElementById('mliC2').value) || null,
         durasi_belajar: durasiDetik,
         aktivitas_id: aktivitasTerpilih.id,
         siswa_id: user?.id,
