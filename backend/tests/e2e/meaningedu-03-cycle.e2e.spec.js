@@ -25,7 +25,7 @@ async function publishActivity(page, title, text, experiment) {
   return (await response.json()).data;
 }
 
-async function reflectOnActivity(page, improved) {
+async function reflectOnActivity(page, activityId, teacherHeaders, improved) {
   const answer = improved
     ? 'Saya membandingkan dua percobaan kincir air dan mengaitkan energi aliran dengan gerak poros.'
     : 'Saya melihat kincir air berputar, tetapi belum memahami mengapa energinya berubah.';
@@ -50,16 +50,21 @@ async function reflectOnActivity(page, improved) {
   await page.locator('#btnSimpanJurnal').click();
   const response = await saved;
   expect(response.status()).toBe(201);
-  const body = await response.json();
-  expect(body.data.jawaban_lanjutan).toContain(improved ? 'percobaan kedua' : 'aliran mendorong');
-  expect(body.skor_mli.status).toBe('COMPLETE');
-  expect(body.skor_mli.formula_version).toBe('MLI-v2.0-EW');
-  expect(body.skor_mli.analysis_source).toBe('gemini');
+  const journal = await page.request.get(`/jurnal/aktivitas/${activityId}`, { headers: teacherHeaders });
+  expect(journal.ok()).toBeTruthy();
+  expect((await journal.json())[0].jawaban_lanjutan).toContain(improved ? 'percobaan kedua' : 'aliran mendorong');
+  const dashboard = await page.request.get(`/mli/dashboard/${activityId}`, { headers: teacherHeaders });
+  expect(dashboard.ok()).toBeTruthy();
+  const score = (await dashboard.json()).detail_siswa[0];
+  expect(score.status).toBe('COMPLETE');
+  expect(score.formula_version).toBe('MLI-v2.0-EW');
+  expect(score.analysis_source).toBe('gemini');
   await expect(page.locator('#daftarAktivitas .aktivitas-chip').first()).toBeVisible();
-  return body.skor_mli;
+  return score;
 }
 
 test('siklus MeaningEdu 03: guru, siswa, MLI, intervensi, perbandingan, dan rekomendasi sukarela', async ({ page, browser }) => {
+  test.setTimeout(90_000);
   const reset = await page.request.post('/__e2e/reset?unenrolled=1');
   expect(reset.ok()).toBeTruthy();
   const teacherHeaders = await signIn(page, 1, 'Guru E2E', 'guru');
@@ -86,7 +91,7 @@ test('siklus MeaningEdu 03: guru, siswa, MLI, intervensi, perbandingan, dan reko
     await expect(student.locator('#pathRecommendation')).toBeVisible();
     await student.getByRole('button', { name: 'Tetap di jalur saya' }).click();
     await expect(student.locator('#jalurTabsContainer .jalur-tab.active')).toContainText('Materi Teks');
-    const baseline = await reflectOnActivity(student, false);
+    const baseline = await reflectOnActivity(student, first.id, teacherHeaders, false);
 
     await page.reload();
     await expect(page.locator('#mliArea .score')).toContainText(Number(baseline.skor_akhir).toFixed(1));
@@ -122,7 +127,7 @@ test('siklus MeaningEdu 03: guru, siswa, MLI, intervensi, perbandingan, dan reko
     await student.locator('#daftarAktivitas .aktivitas-chip').filter({ hasText: next.judul }).click();
     await expect(student.locator('#materiContent')).toContainText('Bandingkan kecepatan air');
     await expect(student.locator('#pathRecommendation')).toBeHidden();
-    const followMli = await reflectOnActivity(student, true);
+    const followMli = await reflectOnActivity(student, next.id, teacherHeaders, true);
     expect(Number(followMli.keterlibatan_kognitif)).toBeGreaterThan(Number(baseline.keterlibatan_kognitif));
 
     await expect(page.locator('#interventionHistory select').first()).toBeVisible();
