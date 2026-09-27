@@ -98,3 +98,60 @@ test.describe.serial('MeaningEdu critical browser flows', () => {
     expect(result.body.message).toContain('tidak terdaftar');
   });
 });
+
+test('MeaningEdu 03: refleksi, intervensi, dan rekomendasi dengan pilihan siswa', async ({ page, browser }) => {
+  await page.request.post('/__e2e/reset');
+  const teacherToken = (await (await page.request.get('/__e2e/token/1')).json()).token;
+  const headers = { Authorization: `Bearer ${teacherToken}` };
+  const createActivity = async (judul) => {
+    const response = await page.request.post('/aktivitas/1', { headers, data: {
+      judul, deskripsi: 'Pengamatan energi', jalur: [
+        { tipe_jalur: 'teks', label: 'Baca', konten: 'Bacaan energi' },
+        { tipe_jalur: 'eksperimen', label: 'Eksperimen', konten: 'Percobaan energi' }
+      ]
+    } });
+    expect(response.status()).toBe(201);
+    return (await response.json()).data;
+  };
+  const source = await createActivity('Energi awal');
+  const target = await createActivity('Energi lanjutan');
+  const reflection = await page.request.put(`/teacher-reflections/activity/${source.id}`, {
+    headers, data: { what_worked: 'Diskusi berhasil', student_difficulties: 'Kesulitan menafsirkan data',
+      next_change: 'Tambah percobaan' }
+  });
+  expect(reflection.ok()).toBeTruthy();
+  const intervention = await page.request.post(`/pedagogy/interventions/${source.id}`, {
+    headers, data: { problem_note: 'Penafsiran data', action_note: 'Percobaan sederhana',
+      target_activity_id: target.id, recommended_path_id: target.jalur[1].id }
+  });
+  expect(intervention.status()).toBe(201);
+  const interventionId = (await intervention.json()).intervention.id;
+  const follow = await page.request.patch(`/pedagogy/interventions/${interventionId}/follow-up`, {
+    headers, data: { target_activity_id: target.id, follow_up_note: 'Pengamatan berikutnya' }
+  });
+  expect(follow.ok()).toBeTruthy();
+  expect((await follow.json()).comparison.observed_change).toBeNull();
+
+  await signIn(page, users.guru);
+  await page.goto('/dashboard-guru.html');
+  await expect(page.locator('#teacherReflectionPanel')).toBeVisible();
+  await expect(page.locator('#teacherWhatWorked')).toHaveValue('Diskusi berhasil');
+  await expect(page.locator('#interventionHistory')).toContainText('Percobaan sederhana');
+
+  const studentPage = await browser.newPage();
+  try {
+    await signIn(studentPage, users.enrolled);
+    await studentPage.goto('/workspace-siswa.html');
+    await studentPage.locator('#daftarAktivitas .aktivitas-chip').filter({ hasText: 'Energi lanjutan' }).click();
+    await studentPage.locator('#jalurTabsContainer .jalur-tab').filter({ hasText: 'Baca' }).click();
+    await expect(studentPage.locator('#pathRecommendation')).toBeVisible();
+    await expect(studentPage.locator('#pathRecommendation')).toContainText('Eksperimen');
+    await studentPage.getByRole('button', { name: 'Tetap di jalur saya' }).click();
+    await expect(studentPage.locator('#pathRecommendation')).toBeHidden();
+    await expect(studentPage.locator('#jalurTabsContainer .jalur-tab.active')).toContainText('Baca');
+    await studentPage.locator('#jalurTabsContainer .jalur-tab').filter({ hasText: 'Baca' }).click();
+    await expect(studentPage.locator('#pathRecommendation')).toBeVisible();
+    await studentPage.getByRole('button', { name: 'Coba jalur ini' }).click();
+    await expect(studentPage.locator('#jalurTabsContainer .jalur-tab.active')).toContainText('Eksperimen');
+  } finally { await studentPage.close(); }
+});

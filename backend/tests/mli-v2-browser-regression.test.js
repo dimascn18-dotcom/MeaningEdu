@@ -23,7 +23,8 @@ test('membuka aktivitas tidak mengirim pilihan jalur; klik tab mengirim satu pil
   };
   const elements = {
     jalurTabsContainer: container, materiContent: { textContent: '' },
-    btnSimplifier: { classList: { remove() {} } }
+    btnSimplifier: { classList: { remove() {} } },
+    pathRecommendation: { style: { display: 'none' } }
   };
   const document = {
     getElementById(id) { return elements[id]; },
@@ -35,6 +36,7 @@ test('membuka aktivitas tidak mengirim pilihan jalur; klik tab mengirim satu pil
   const script = section('function renderJalurTabs(akt) {', '// ================= 4. AI SIMPLIFIER TOGGLE');
   const context = { document, aktivitasTerpilih: { id: 8 }, fetchWithAuth: async (...args) => {
     requests.push(args);
+    return { ok: false };
   }, console };
   vm.runInNewContext(script, context);
   context.renderJalurTabs({ jalur: [
@@ -44,6 +46,7 @@ test('membuka aktivitas tidak mengirim pilihan jalur; klik tab mengirim satu pil
   assert.equal(elements.materiContent.textContent, 'Bahan awal');
   assert.equal(requests.length, 0, 'Tab pertama dibuka otomatis tanpa catatan pilihan.');
   tabs[1].click();
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(requests.length, 1);
   assert.equal(JSON.parse(requests[0][1].body).jalur_id, 12);
 });

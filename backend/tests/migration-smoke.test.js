@@ -40,11 +40,15 @@ async function verifyMeaningEdu01Schema(client) {
         ('mli_v2_observations', 'formula_version'),
         ('mli_v2_observations', 'evidence_status'),
         ('log_pilihan_jalur', 'event_type'),
+        ('teacher_reflections', 'next_change'),
+        ('pedagogical_interventions', 'baseline_snapshot'),
+        ('pedagogical_interventions', 'follow_up_snapshot'),
+        ('path_recommendation_decisions', 'selected_choice_log_id'),
         ('mli_scores', 'created_at'),
         ('materi_kelas', 'blob_pathname')
       )
   `);
-  assert.equal(columns.rowCount, 9);
+  assert.equal(columns.rowCount, 13);
 
   const indexes = await client.query(`
     SELECT indexname
