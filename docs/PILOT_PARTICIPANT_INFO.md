@@ -2,11 +2,13 @@
 
 **Status: simulasi internal untuk peserta dewasa; rencana kegiatan dengan siswa SMP/SMA belum mendapat izin dan keputusan persetujuan wali.** Dokumen ini adalah informasi peserta untuk simulasi, bukan pernyataan bahwa Universitas Pendidikan Indonesia, dosen, atau sekolah menyelenggarakan atau menyetujui pilot.
 
+Versi informasi peserta: `pilot-1.0-2026-09-29`.
+
 **Nama kegiatan:** Pilot MeaningEdu 1.0 — Pembelajaran Fisika Berbasis Refleksi dan Learning Path
 **Pengelola:** Dimas Cahya Nugraha, mahasiswa Universitas Pendidikan Indonesia, dalam kapasitas pribadi/proyek mahasiswa
 **Kontak bantuan, berhenti, akses, dan penghapusan:** dimas.cn18@upi.edu
 **Periode rencana:** Oktober–November 2026; dua aktivitas dalam dua minggu
-**Masa simpan:** paling lama enam bulan setelah kegiatan selesai. Pengelola mencatat tanggal selesai dan batas penghapusan, lalu membersihkan database pilot terpisah. Aplikasi belum mempunyai penghapusan otomatis.
+**Masa simpan:** paling lama enam bulan setelah kegiatan selesai. Pengelola mencatat tanggal selesai dan batas penghapusan, lalu membersihkan database pilot terpisah dan PDF pilot pada Blob. Aplikasi belum mempunyai penghapusan otomatis.
 **Tahap sekarang:** simulasi internal dengan mahasiswa/calon guru berusia sekurang-kurangnya 18 tahun yang memerankan guru dan siswa. Satu guru dan sekitar 30 siswa berusia 12–18 tahun adalah **rencana tahap berikutnya**, belum peserta yang sudah direkrut. Topik Fisika mengikuti kebutuhan guru.
 
 ## Tujuan dan partisipasi
