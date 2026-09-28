@@ -157,7 +157,7 @@
       <!-- Kolom kiri: daftar kelas + buat kelas -->
       <aside>
         <div class="panel">
-          <h3>Kelas Saya</h3>
+          <h2>Kelas Saya</h2>
           <div id="daftarKelas">
             <div class="loading-state"><span class="ic">⏳</span>Memuat kelas...</div>
           </div>
@@ -183,7 +183,7 @@
 
         <div class="panel" id="classOverview">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-            <h3 style="margin-bottom:0;">Pilih Aktivitas</h3>
+            <h2 style="margin-bottom:0;">Pilih Aktivitas</h2>
             <button class="link-btn" id="toggleBuilder" style="display:none;">+ Rancang Aktivitas Baru</button>
           </div>
           <div class="aktivitas-row" id="daftarAktivitas" style="margin-top:14px;">
@@ -230,17 +230,17 @@
         </section>
         <div class="panel tren-panel">
           <div class="tren-head">
-            <h3>Tren MLI mingguan</h3>
+            <h2>Tren MLI mingguan</h2>
             <label for="trenRentang">Rentang tren</label><select class="tren-rentang-select" id="trenRentang">
               <option value="4">4 minggu terakhir</option>
               <option value="8" selected>8 minggu terakhir</option>
               <option value="12">12 minggu terakhir</option>
             </select>
           </div>
-          <div id="trenArea"><div class="loading-state"><span class="ic">⏳</span>Memuat tren...</div></div>
+          <div id="trenArea"><p class="empty-hint">Pilih kelas untuk melihat tren.</p></div>
         </div>
         <div class="panel builder-panel" id="builderPanel" style="display:none;">
-          <h3>Rancang aktivitas</h3>
+          <h2>Rancang aktivitas</h2>
           <div class="form-mini" style="border:none; padding-top:0; margin-top:0;">
             <label for="bJudul">Judul / Topik Aktivitas</label>
             <input type="text" id="bJudul" placeholder="mis. Tekanan Hidrostatis" />
@@ -287,7 +287,7 @@
         </div>
         <div class="panel materi-manager-panel" id="materiManagerPanel" style="display:none;">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-    <h3 style="margin-bottom:0;">Materi kelas</h3>
+    <h2 style="margin-bottom:0;">Materi kelas</h2>
     <button class="link-btn" id="toggleMateriForm">+ Unggah Materi Baru</button>
   </div>
   <p style="font-size:0.8rem; color:var(--text-lt); margin:8px 0 0;">Label topik &amp; dimensi MLI membantu Anda — terutama guru lintas bidang — tahu aspek psikologis apa yang sedang dilatih lewat materi ini.</p>
@@ -345,9 +345,8 @@
   <script defer src="math-render.js"></script>
   <script>
     (function () {
-      const userRaw = localStorage.getItem('user');
-      const user = userRaw ? JSON.parse(userRaw) : null;
-      if (!user || user.peran !== 'guru') {
+      const user = currentUser();
+      if (!user || user.peran !== 'guru' || !localStorage.getItem('token')) {
         window.location.href = 'login.html';
         return;
       }
@@ -441,6 +440,8 @@
           recommended_path_id: Number(document.getElementById('interventionPath').value) || null
         };
         if (!body.problem_note || !body.action_note) { status.textContent = 'Isi masalah dan tindakan.'; return; }
+        const saveButton = document.getElementById('saveIntervention');
+        saveButton.disabled = true;
         try {
           const response = await fetchWithAuth(`/pedagogy/interventions/${activityId}`, { method: 'POST', body: JSON.stringify(body) });
           const data = await response.json();
@@ -450,6 +451,7 @@
           document.getElementById('interventionAction').value = '';
           muatIntervensi();
         } catch (error) { status.textContent = error.message; }
+        finally { saveButton.disabled = false; }
       });
       async function muatRefleksiGuru(aktivitasId) {
         const panel = document.getElementById('teacherReflectionPanel');
@@ -481,6 +483,8 @@
         };
         const status = document.getElementById('teacherReflectionStatus');
         if (Object.values(fields).some(v => !v)) { status.textContent = 'Isi ketiga bagian refleksi.'; return; }
+        const saveButton = document.getElementById('saveTeacherReflection');
+        saveButton.disabled = true;
         try {
           const response = await fetchWithAuth(`/teacher-reflections/activity/${activityId}`, {
             method: 'PUT', body: JSON.stringify(fields)
@@ -488,6 +492,7 @@
           const data = await response.json();
           if (aktivitasAktifId === activityId) status.textContent = response.ok ? 'Refleksi tersimpan.' : (data.message || 'Gagal menyimpan.');
         } catch (error) { if (aktivitasAktifId === activityId) status.textContent = 'Koneksi gagal; refleksi belum tersimpan.'; }
+        finally { saveButton.disabled = false; }
       });
 
        // ================= Bagian 2: hint kedalaman materi sesuai template =================
@@ -1088,7 +1093,7 @@ ${data.pertanyaan_kesimpulan}`;
             </div>
             <section class="attention-note" aria-labelledby="attentionHeading">
               <h2 id="attentionHeading">Perhatian</h2>
-              <p>${coverage.complete_students < coverage.enrolled_students ? `${coverage.enrolled_students - coverage.complete_students} siswa belum memiliki MLI lengkap. Periksa jurnal dan bukti sebelum menarik kesimpulan.` : 'Semua siswa memiliki MLI lengkap. Periksa variasi dimensi dan bukti tiap siswa.'}</p>
+              <p>${coverage.enrolled_students === 0 ? 'Belum ada siswa terdaftar. Bagikan kode kelas sebelum menafsirkan MLI.' : coverage.complete_students < coverage.enrolled_students ? `${coverage.enrolled_students - coverage.complete_students} siswa belum memiliki MLI lengkap. Periksa jurnal dan bukti sebelum menarik kesimpulan.` : 'Semua siswa memiliki MLI lengkap. Periksa variasi dimensi dan bukti tiap siswa.'}</p>
             </section>
             <h2>Interpretasi</h2>
             <p>MLI adalah ringkasan indikator prototype, bukan nilai akademik atau diagnosis. Perubahan antaraktivitas tidak membuktikan sebab akibat. Keputusan pedagogis tetap pada guru.</p>

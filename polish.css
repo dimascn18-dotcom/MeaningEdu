@@ -58,7 +58,6 @@ details ul { list-style:disc; padding-left:20px; }
 .skor-sedang { color:#755015; }
 .materi-tool-btn.active { background:var(--forest); }
 .katex-display { overflow-x:auto; overflow-y:hidden; padding:6px 0; max-width:100%; }
-body.mode-disleksia .katex,body.mode-disleksia .katex * { font-family:KaTeX_Main,serif !important; }
 .hero-visual { pointer-events:none; }
 .mock-title { color:var(--text-md); }
 @media (min-width:768px) and (max-width:1023px) { .gd-grid { grid-template-columns:1fr; } .gd-grid aside { position:static; } #daftarKelas { display:grid; grid-template-columns:1fr 1fr; gap:12px; } }
@@ -78,3 +77,15 @@ body.mode-disleksia .katex,body.mode-disleksia .katex * { font-family:KaTeX_Main
  .hero-stats { flex-wrap:wrap; } .stat-divider { display:none; }
 }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+.section-eyebrow { color:var(--gold-text); }
+.mli-num { color:var(--forest-md); opacity:1; }
+.footer-bottom { color:var(--sage-lt); }
+.materi-badge,.ms-dim-badge { color:var(--gold-text); }
+.gd-shell,.ws-shell { padding-top:110px; }
+.panel > p,.journal-sub { font-size:1rem !important; }
+.exit-link { display:inline-flex; align-items:center; padding:8px 12px; }
+button { min-width:44px; }
+.mobile-menu a { display:flex; align-items:center; min-height:44px; }
+.mli-table th button { overflow-wrap:normal; }
+@media (max-width:767px) { .gd-shell,.ws-shell { padding-top:100px; } }
+.footer-bottom p { color:var(--sage-lt); }

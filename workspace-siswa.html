@@ -18,7 +18,7 @@
       src: url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic/compiled/OpenDyslexic-Regular.otf') format('opentype');
       font-display: swap;
     }
-    body.mode-disleksia, body.mode-disleksia * { font-family: 'OpenDyslexic', var(--font-body) !important; }
+    body.mode-disleksia, body.mode-disleksia :not(.katex):not(.katex *) { font-family: 'OpenDyslexic', var(--font-body) !important; }
 
     .ws-shell { max-width: 980px; margin: 0 auto; padding: 40px 24px 100px; }
 
@@ -181,7 +181,7 @@
     </nav>
     <!-- PANEL KELAS -->
     <div class="panel" id="kelasPanel">
-      <h3>Kelas Saya</h3>
+      <h2>Kelas Saya</h2>
       <div id="kelasContent">
         <div class="kelas-form">
           <label for="inputKodeKelas">Kode kelas</label>
@@ -204,7 +204,7 @@
     <!-- PANEL MATERI + JALUR BELAJAR OTONOM + SIMPLIFIER -->
     <div class="panel" id="materiPanel" style="display:none;">
       <div class="materi-head">
-        <h4 id="materiJudul">Judul Aktivitas</h4>
+        <h2 id="materiJudul">Judul Aktivitas</h2>
         <span class="materi-badge" id="materiTemplate">Template</span>
       </div>
 
@@ -311,7 +311,8 @@
   <script>
   (function () {
     // ================= STATE & SAPAAN =================
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const user = currentUser();
+    if (!user || user.peran !== 'siswa' || !localStorage.getItem('token')) { window.location.href = 'login.html'; return; }
     if (user && user.nama) {
       document.getElementById('sapaanNama').textContent = `Halo, ${user.nama.split(' ')[0]}! 👋`;
     }
@@ -666,9 +667,13 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
         alert('Fitur suara tidak didukung di perangkat ini, atau belum ada materi yang dibuka.');
         return;
       }
+      const button = document.getElementById('btnTTS');
+      if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); button.textContent = '🔊 Dengarkan Materi'; return; }
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(teks);
       utter.lang = 'id-ID';
+      button.textContent = 'Hentikan pembacaan';
+      utter.onend = utter.onerror = () => { button.textContent = '🔊 Dengarkan Materi'; };
       window.speechSynthesis.speak(utter);
     });
 
@@ -735,6 +740,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           document.getElementById('tahap-2').style.display = 'block';
           document.getElementById('teksPertanyaanAI').textContent = data.pertanyaan_ai;
           document.getElementById('stepDot2').classList.add('active');
+          document.getElementById('jawabanLanjutan').focus();
         } else {
           alert('Gagal memuat AI: ' + data.message);
         }
@@ -878,6 +884,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           document.getElementById('tahap-2').style.display = 'none';
           document.getElementById('tahap-3').style.display = 'block';
           document.getElementById('stepDot3').classList.add('active');
+          document.getElementById('jawabanKesenjangan').focus();
         } else {
           alert('Gagal memuat pertanyaan refleksi akhir: ' + data.message);
         }

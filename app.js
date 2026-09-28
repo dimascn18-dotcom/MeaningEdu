@@ -20,6 +20,11 @@ function safeHttpUrl(value) {
   }
 }
 
+function currentUser() {
+  try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+  catch { localStorage.removeItem('user'); return null; }
+}
+
 // --- Navbar scroll effect ---
 const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
@@ -69,7 +74,8 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       e.preventDefault();
       const offset = 80;
       const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
-      window.scrollTo({ top, behavior: 'smooth' });
+      window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      if (target.matches('main,[tabindex]')) target.focus({ preventScroll:true });
     }
   });
 });
@@ -226,7 +232,13 @@ async function fetchWithAuth(url, options = {}) {
     ...options.headers
   };
 
-  return fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+  const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+  if (response.status === 401) {
+    localStorage.removeItem('token'); localStorage.removeItem('user');
+    sessionStorage.setItem('registrationNotice', 'Sesi berakhir. Masuk kembali untuk melanjutkan. Antrean jurnal tetap tersimpan di perangkat.');
+    window.location.href = 'login.html';
+  }
+  return response;
 }
 
 // Contoh Penggunaan Nanti:

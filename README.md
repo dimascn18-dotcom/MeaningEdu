@@ -1,12 +1,21 @@
-# MeaningEdu
+# MeaningEdu 1.0
 
-MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, jurnal refleksi, AI pendamping, serta analitik Meaningful Learning Index (MLI). Repository ini berisi baseline MeaningEdu 01 dan implementasi MLI v2 MeaningEdu 02.
+MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, jurnal refleksi, AI pendamping, serta analitik Meaningful Learning Index (MLI). Repository ini memuat stabilisasi MeaningEdu 01, MLI v2 MeaningEdu 02, siklus pedagogis MeaningEdu 03, dan polishing/pilot readiness MeaningEdu 1.0.
+
+## Mulai menggunakan dan menyiapkan pilot
+
+- [Panduan guru dan siswa](docs/QUICK_START.md)
+- [Pilot Runbook, recovery, dan gate deployment](docs/PILOT_RUNBOOK.md)
+- [Kontrak UI, responsive, aksesibilitas, dan regresi 1.0](docs/PRODUCT_UI_1.0.md)
+- [Hasil verifikasi implementasi 1.0](docs/VERIFICATION_1.0.md)
+
+Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Tidak ada migrasi, formula MLI, maupun API pedagogis baru. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf form belum memiliki autosave.
 
 ## Arsitektur aktif
 
 ```mermaid
 flowchart LR
-  P[Frontend PWA<br>Vercel Static] --> A[Express API<br>Vercel Functions]
+  P["Frontend PWA · Vercel Static"] --> A["Express API · Vercel Functions"]
   A --> N[(Neon PostgreSQL)]
   A --> G[Gemini API]
   A --> B[(Vercel Private Blob)]
@@ -39,6 +48,8 @@ MeaningEdu/
 ├── config.js                   # konfigurasi publik URL API
 ├── app.js                      # autentikasi dan helper frontend
 ├── sw.js                       # cache PWA + sinkronisasi jurnal
+├── polish.css                  # aturan visual/responsive/aksesibilitas 1.0
+├── ui.js                       # status error/retry dan semantik kontrol
 ├── math-render.js              # konfigurasi KaTeX yang aman
 ├── vendor/katex/               # KaTeX 0.18.7 dan font lokal
 ├── admin.html                  # persetujuan akun guru
@@ -217,3 +228,17 @@ Siswa terdaftar mendapat maksimal satu tawaran per pilihan jalur eksplisit via
 mencatat pilihan jalur eksplisit baru; penolakan tidak mengubah jalur. Tab awal
 yang terbuka otomatis tidak dianggap pilihan. Advisor guru dapat menerima
 `aktivitas_id` sebagai konteks tambahan yang diverifikasi kepemilikannya.
+
+## Pemeriksaan MeaningEdu 1.0
+
+```bash
+cd backend
+npm ci
+npm test
+# Gunakan hanya database disposable; E2E mereset users dan data terkait.
+TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/meaningedu_test npm test
+npx playwright install chromium
+TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/meaningedu_test npm run test:e2e
+```
+
+Browser suite mencakup siklus dua aktivitas, formula dan PDF, layout enam viewport, audit axe pada lima halaman utama, keyboard, error/retry, auth, math dinamis, serta service worker nyata dengan antrean/sinkronisasi jurnal. Test portable lokal tidak menggantikan gate migrasi fresh/legacy PostgreSQL 16 di CI. Audit manual pembaca layar dan rehearsal provider produksi tetap diperlukan sebelum pilot dengan peserta.

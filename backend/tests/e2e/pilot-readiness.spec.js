@@ -93,3 +93,38 @@ test('dynamic math is scoped, safe, accessible, and keeps form LaTeX untouched',
   await page.evaluate(() => { document.getElementById('mathTest').textContent = '\\(\\href{javascript:alert(1)}{x}\\)'; });
   await expect(page.locator('#mathTest a')).toHaveCount(0);
 });
+
+test('expanded teacher forms, keyboard sorting, and text zoom remain usable', async ({page}) => {
+  const headers=await loginFixture(page);
+  await seedActivity(page,headers);
+  await page.goto('/dashboard-guru.html');
+  await expect(page.locator('#mliArea .score')).toBeVisible();
+  await page.locator('#toggleBuatKelas').click();
+  await page.locator('#toggleBuilder').click();
+  await page.locator('#toggleMateriForm').click();
+  await page.locator('#mTipe').selectOption('pdf');
+  const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
+  expect(result.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
+  const sort=page.locator('#tableHolder button[data-key="nama_siswa"]');
+  await sort.focus();await page.keyboard.press('Enter');
+  await expect(sort).toBeFocused();
+  await expect(sort.locator('..')).toHaveAttribute('aria-sort','descending');
+  await page.keyboard.press('Enter');
+  await expect(sort.locator('..')).toHaveAttribute('aria-sort','ascending');
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>{document.documentElement.style.fontSize='32px';});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+test('expired session redirects, and malformed local account data cannot crash the page',async({page})=>{
+  await loginFixture(page);
+  await page.route('**/kelas',r=>r.fulfill({status:401,json:{message:'Sesi habis'}}));
+  await page.goto('/dashboard-guru.html');
+  await expect(page).toHaveURL(/login.html/);
+  await expect(page.locator('#authStatus')).toContainText('Sesi berakhir');
+  await page.addInitScript(()=>localStorage.setItem('user','invalid-json'));
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/workspace-siswa.html');
+  await expect(page).toHaveURL(/login.html/);
+  expect(errors).toEqual([]);
+});
