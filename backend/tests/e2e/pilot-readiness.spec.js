@@ -24,15 +24,25 @@ test.beforeEach(async ({ page }) => {
 
 test('mobile layouts, keyboard entry, and automated accessibility on primary pages', async ({ page }) => {
   test.setTimeout(120000);
-  const headers = await loginFixture(page);
+  const credentials = {};
+  for (const [role,id] of [['guru',1],['siswa',2],['admin',4]]) {
+    credentials[role] = {id,token:(await (await page.request.get(`/__e2e/token/${id}`)).json()).token};
+  }
+  await page.addInitScript(credentials => {
+    const role = location.pathname.includes('workspace-siswa') ? 'siswa' : location.pathname.includes('admin') ? 'admin' : 'guru';
+    const {id,token} = credentials[role];
+    localStorage.setItem('token',token);
+    localStorage.setItem('user',JSON.stringify({id,nama:'Peserta Pilot',peran:role}));
+  }, credentials);
+  const headers = {Authorization:`Bearer ${credentials.guru.token}`};
   await seedActivity(page, headers);
-  for (const file of ['index','login','register','dashboard-guru','workspace-siswa']) {
-    if (file === 'workspace-siswa') await loginFixture(page, 'siswa');
+  for (const file of ['index','pilot-info','login','register','dashboard-guru','workspace-siswa','admin']) {
     const errors = [];
     const collect = e => errors.push(e.message); page.on('pageerror', collect);
     await page.goto(`/${file}.html`);
     if (file === 'dashboard-guru') await expect(page.locator('#mliArea .score')).toBeVisible();
     if (file === 'workspace-siswa') await expect(page.locator('#materiContent .katex').first()).toBeVisible();
+    if (file === 'admin') await expect(page.locator('.request-card')).toBeVisible();
     for (const width of [360,390,430,768,1024,1440]) {
       await page.setViewportSize({width,height:900});
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${file}: ${width}px overflow`).toBeTruthy();
@@ -45,6 +55,72 @@ test('mobile layouts, keyboard entry, and automated accessibility on primary pag
     await expect(page.locator('main')).toBeFocused();
     expect(errors).toEqual([]); page.off('pageerror', collect);
   }
+});
+
+test('adult simulation registration requires explicit consent and records the policy version', async ({page}) => {
+  const rejected = await page.request.post('/auth/register', {data:{
+    nama:'Tanpa persetujuan', email:'no-consent@example.test', password:'password-kuat', peran:'siswa'
+  }});
+  expect(rejected.status()).toBe(400);
+  await page.goto('/register.html');
+  await page.getByLabel('Nama atau nama samaran').fill('Peserta Dewasa');
+  await page.getByLabel('Email',{exact:true}).fill('adult-e2e@example.test');
+  await page.getByLabel('Wilayah Sekolah').selectOption('Perkotaan / Peri-urban');
+  await page.getByLabel('Kata Sandi').fill('password-kuat');
+  await page.getByRole('button',{name:'Saya Siswa'}).click();
+  await page.getByRole('button',{name:'Buat Akun'}).click();
+  await expect(page).toHaveURL(/register.html/);
+  await page.locator('#pilotConsent').check();
+  await page.locator('#adultConfirmed').check();
+  await page.getByRole('button',{name:'Buat Akun'}).click();
+  await expect(page).toHaveURL(/login.html/);
+  await expect(page.locator('#authStatus')).toContainText('Registrasi berhasil');
+});
+
+test('admin UI retries failed loading and approves a teacher without a dialog', async ({page}) => {
+  const { token } = await (await page.request.get('/__e2e/token/4')).json();
+  await page.addInitScript(token => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify({id:4,nama:'Admin E2E',peran:'admin'}));
+  }, token);
+  let fail = true;
+  await page.route('**/admin/teacher-requests', route =>
+    fail ? route.fulfill({status:503,json:{message:'Layanan belum tersedia'}}) : route.continue());
+  await page.goto('/admin.html');
+  await expect(page.locator('#requestList [role=alert]')).toBeVisible();
+  fail = false;
+  await page.getByRole('button',{name:'Coba lagi'}).click();
+  await expect(page.locator('.request-card')).toContainText('Guru Menunggu');
+  page.on('dialog', dialog => { throw new Error('Admin action opened unexpected dialog: '+dialog.message()); });
+  await page.getByRole('button',{name:'Setujui Guru Menunggu'}).click();
+  await expect(page.locator('#adminStatus')).toContainText('disetujui');
+  await expect(page.locator('#requestList')).toContainText('Tidak ada permohonan');
+  const pending = await page.request.get('/admin/teacher-requests', {headers:{Authorization:`Bearer ${token}`}});
+  expect(await pending.json()).toEqual([]);
+});
+
+test('teacher and student validation use inline feedback without blocking dialogs', async ({page,context}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  page.on('dialog', dialog => { throw new Error(`Unexpected dialog: ${dialog.message()}`); });
+  await page.goto('/dashboard-guru.html');
+  await expect(page.locator('#toggleBuilder')).toBeVisible();
+  await page.locator('#toggleBuilder').click();
+  await page.locator('#btnPublishAktivitas').click();
+  await expect(page.locator('#builderStatus')).toContainText('Judul aktivitas wajib');
+  await page.locator('#bJudul').fill('Draf Fisika');
+  await page.locator('#btnPublishAktivitas').click();
+  await expect(page.locator('#builderStatus')).toContainText('minimal 2');
+  const studentPage = await context.newPage();
+  await loginFixture(studentPage,'siswa');
+  studentPage.on('dialog', dialog => { throw new Error(`Unexpected dialog: ${dialog.message()}`); });
+  await studentPage.goto('/workspace-siswa.html');
+  await expect(studentPage.locator('#jurnalUnlocked')).toBeVisible();
+  await studentPage.locator('#btnKirimAwal').click();
+  await expect(studentPage.locator('#journalStatus')).toContainText('isi jawaban awalmu');
+  await studentPage.locator('#tambahKelasLink').click();
+  await studentPage.locator('#btnJoinKelas').click();
+  await expect(studentPage.locator('#joinStatus')).toContainText('Masukkan kode kelas');
 });
 
 test('HTTP failure differs from empty state and retries without losing teacher input', async ({page}) => {
@@ -173,7 +249,7 @@ test('student reflection restores each saved stage and survey after reload', asy
   await expect(page.locator('#mliA1')).toHaveValue('4');
 });
 
-test('manifest icons resolve and are cached by the real service worker', async ({browser}) => {
+test('manifest icons and local reading font are available through the offline service worker', async ({browser}) => {
   const express = require('express');
   const path = require('node:path');
   const app = express();
@@ -197,8 +273,16 @@ test('manifest icons resolve and are cached by the real service worker', async (
   await expect.poll(() => page.evaluate(async () => {
     await navigator.serviceWorker.ready;
     const cached = await caches.match('/icons/icon-192.png');
-    return Boolean(cached);
+    const font = await caches.match('/vendor/opendyslexic/OpenDyslexic-Regular.woff2');
+    return Boolean(cached && font && navigator.serviceWorker.controller);
   })).toBe(true);
+  await context.setOffline(true);
+  const fontLoaded = await page.evaluate(async () => {
+    const face = new FontFace('OpenDyslexic', "url('/vendor/opendyslexic/OpenDyslexic-Regular.woff2')");
+    await face.load();
+    return face.status === 'loaded';
+  });
+  expect(fontLoaded).toBe(true);
   } finally {
     await context.close();
     await new Promise(resolve => server.close(resolve));

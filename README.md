@@ -8,8 +8,9 @@ MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, 
 - [Pilot Runbook, recovery, dan gate deployment](docs/PILOT_RUNBOOK.md)
 - [Kontrak UI, responsive, aksesibilitas, dan regresi 1.0](docs/PRODUCT_UI_1.0.md)
 - [Hasil verifikasi implementasi 1.0](docs/VERIFICATION_1.0.md)
+- [Informasi dan persetujuan peserta simulasi](docs/PILOT_PARTICIPANT_INFO.md)
 
-Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Tidak ada migrasi, formula MLI, maupun API pedagogis baru. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf form belum memiliki autosave.
+Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Formula MLI dan API pedagogis tidak diubah. Kandidat sesudah prerelease menambah migration `0011_pilot_consent.sql` untuk mencatat versi dan waktu persetujuan akun baru pada simulasi dewasa. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf refleksi tersimpan lokal per akun dan aktivitas saat diisi; setelah reload luring, daftar aktivitas dari API tetap memerlukan koneksi agar draf dapat dibuka kembali.
 
 ## Arsitektur aktif
 
@@ -180,7 +181,7 @@ TEST_DATABASE_URL="postgresql://..." npm run test:e2e
 
 `npm run test:e2e` menjalankan Chromium terhadap frontend dan Express API nyata dengan PostgreSQL test. Integrasi Gemini dan Private Blob diganti stub deterministik khusus test; route aplikasi, JWT, ownership/enrollment, penulisan metadata, dan rendering browser tetap menggunakan implementasi production. Skenario membuktikan output rumus AI dirender KaTeX tanpa delimiter mentah, upload PDF mencapai `/pdf/complete`, siswa enrolled dapat membuka PDF, dan siswa non-enrolled menerima `403`.
 
-Regresi pilot memeriksa triage siswa dari skor MLI rendah, tabel data tren yang dapat dibuka, pemulihan draf refleksi setiap tahap setelah reload, ikon manifest/caching service worker, viewport ponsel, aksesibilitas otomatis, dan antrean jurnal offline satu kali. Draf lokal dipisah berdasarkan akun dan aktivitas; membersihkan data situs akan menghapus draf. Font OpenDyslexic masih memakai CDN pada rilis ini, sehingga tombol font khusus memerlukan jaringan saat pertama kali digunakan.
+Regresi pilot memeriksa triage siswa dari skor MLI rendah, tabel data tren yang dapat dibuka, pemulihan draf refleksi setiap tahap setelah reload, ikon manifest/caching service worker, viewport ponsel, aksesibilitas otomatis, dan antrean jurnal offline satu kali. Draf lokal dipisah berdasarkan akun dan aktivitas; membersihkan data situs akan menghapus draf. Font OpenDyslexic Regular disimpan di `vendor/opendyslexic/` bersama lisensi SIL OFL dan masuk precache shell untuk dipakai setelah pemasangan cache selesai.
 
 Workflow `.github/workflows/ci.yml` menjalankan `npm ci`, unit/integration test dengan service PostgreSQL 16, dependency audit, browser E2E Chromium, dan Gitleaks pada setiap pull request serta push ke branch utama/stabilisasi. Artifact laporan Playwright disimpan selama 14 hari.
 

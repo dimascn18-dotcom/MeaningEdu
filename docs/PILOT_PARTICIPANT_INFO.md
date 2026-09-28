@@ -1,29 +1,28 @@
-# Informasi peserta dan persetujuan pilot MeaningEdu 1.0
+# Informasi peserta dan persetujuan MeaningEdu 1.0
 
-**Status: draf untuk diisi dan disetujui pengelola sebelum mengundang peserta.**
+**Status: simulasi internal untuk peserta dewasa; rencana kegiatan dengan siswa SMP/SMA belum mendapat izin dan keputusan persetujuan wali.** Dokumen ini adalah informasi peserta untuk simulasi, bukan pernyataan bahwa Universitas Pendidikan Indonesia, dosen, atau sekolah menyelenggarakan atau menyetujui pilot.
 
-Pengelola: **[nama lembaga dan penanggung jawab]**  
-Kontak bantuan/permintaan akses atau penghapusan: **[alamat email/nomor yang dipantau]**  
-Tanggal pilot: **[mulai–selesai]**  
-Masa simpan data dan tanggal penghapusan: **[isi durasi/tanggal]**
+**Nama kegiatan:** Pilot MeaningEdu 1.0 — Pembelajaran Fisika Berbasis Refleksi dan Learning Path
+**Pengelola:** Dimas Cahya Nugraha, mahasiswa Universitas Pendidikan Indonesia, dalam kapasitas pribadi/proyek mahasiswa
+**Kontak bantuan, berhenti, akses, dan penghapusan:** dimas.cn18@upi.edu
+**Periode rencana:** Oktober–November 2026; dua aktivitas dalam dua minggu
+**Masa simpan:** paling lama enam bulan setelah kegiatan selesai. Pengelola mencatat tanggal selesai dan batas penghapusan, lalu membersihkan database pilot terpisah. Aplikasi belum mempunyai penghapusan otomatis.
+**Tahap sekarang:** simulasi internal dengan mahasiswa/calon guru berusia sekurang-kurangnya 18 tahun yang memerankan guru dan siswa. Satu guru dan sekitar 30 siswa berusia 12–18 tahun adalah **rencana tahap berikutnya**, belum peserta yang sudah direkrut. Topik Fisika mengikuti kebutuhan guru.
 
-## Untuk calon peserta
+## Tujuan dan partisipasi
 
-Pilot ini menguji apakah aktivitas MeaningEdu mudah dipakai untuk belajar dan membantu guru melihat kebutuhan tindak lanjut. Partisipasi bersifat sukarela; **[pengelola menjelaskan cara menolak/berhenti serta dampaknya terhadap kegiatan kelas sebelum formulir digunakan]**. Jika peserta belum cukup umur untuk menyetujui sendiri, pengelola menentukan dan memperoleh persetujuan wali sesuai konteks pilot.
+Kegiatan memeriksa kemudahan penggunaan, kestabilan teknis, kelancaran alur guru–siswa, pengalaman refleksi, pilihan learning path, dan kegunaan informasi MLI bagi guru. Partisipasi sukarela. Peserta boleh berhenti kapan saja melalui email pengelola tanpa konsekuensi akademik. Pengelola membantu permintaan salinan/perbaikan/penghapusan data dengan memverifikasi email akun, mencatat permintaan dan penyelesaiannya. Penghapusan data server dan penyimpanan lokal perangkat adalah langkah berbeda; jurnal yang masih mengantre luring diperiksa sebelum data browser dibersihkan.
 
-Aplikasi menyimpan akun, keanggotaan kelas, pilihan jalur, jawaban jurnal dan micro-survey, ringkasan MLI, catatan guru, serta PDF materi. Guru dapat membaca jurnal dan ringkasan siswa di kelasnya. Teks yang dikirim ke fitur AI diproses oleh penyedia model Gemini. PDF berada di Vercel Private Blob, sedangkan data aplikasi disimpan di Neon/PostgreSQL. Draft jawaban dan jurnal yang menunggu sinkronisasi dapat berada di penyimpanan browser perangkat yang dipakai; jangan gunakan perangkat bersama tanpa keluar dari akun, dan jangan menghapus data browser sebelum jurnal tertunda terkirim.
+## Data dan akses
 
-MLI adalah ringkasan indikator untuk prototype, bukan nilai, diagnosis, atau bukti bahwa suatu intervensi menyebabkan perubahan. Guru memeriksa bukti dan mengambil keputusan pembelajaran. Hindari memasukkan informasi pribadi sensitif ke jurnal atau dokumen.
+Data yang diproses: nama (boleh nama samaran), email akun, peran, kelas, pilihan jalur belajar, jurnal refleksi, jawaban micro-survey, skor/penjelasan MLI, Teacher Reflection, Pedagogical Intervention, keputusan atas rekomendasi, serta materi/PDF yang diunggah. Data digunakan untuk menguji fungsi dan memperbaiki pengalaman belajar. Guru dapat mengakses kelasnya sendiri; siswa mengakses datanya sendiri; admin mengelola akun; pengelola/developer hanya menggunakan akses yang diperlukan untuk troubleshooting. Hindari memasukkan data pribadi sensitif ke jurnal atau materi.
 
-Pengelola harus menjelaskan tujuan penggunaan data, siapa yang memiliki akses, masa simpan yang dipilih, dan cara meminta salinan/perbaikan/penghapusan data melalui kontak di atas. Pengelola mencatat tanggal permintaan dan penyelesaiannya. Penghapusan data server serta data lokal perangkat adalah langkah berbeda; antrean offline perlu diperiksa sebelum membersihkan browser. Jangan menjanjikan penghapusan instan jika prosedur operasionalnya belum disiapkan.
+Teks yang diproses fitur AI dikirim ke penyedia model Gemini. Data aplikasi berada di database pilot Neon/PostgreSQL yang terpisah dari development; PDF berada di Vercel Private Blob; frontend/backend memakai deployment Vercel. Draf dan jurnal tertunda bisa tersimpan pada perangkat browser peserta. URL baca PDF bersifat sementara. Data individual tidak akan dipublikasikan; laporan atau publikasi, jika ada, hanya memakai temuan agregat/anonim. Dokumentasi karya/HKI memakai perangkat lunak dan gambaran fungsi, tanpa membuka jurnal atau identitas peserta.
 
-## Pernyataan persetujuan
+MLI adalah indikator prototipe pembelajaran, bukan nilai akademik, diagnosis, atau bukti bahwa intervensi guru menyebabkan perubahan. Keputusan pedagogis tetap pada guru. Data yang sudah dianonimkan secara memadai tidak dijanjikan dapat ditemukan kembali untuk penghapusan individu.
 
-- [ ] Saya telah membaca penjelasan, mengetahui kontak pengelola, masa simpan, dan cara berhenti/bertanya.
-- [ ] Saya memahami jawaban teks yang memakai fitur AI dikirim ke penyedia AI dan draft dapat tersimpan pada perangkat ini.
-- [ ] Saya bersedia ikut serta dalam pilot ini.
+## Persetujuan digital untuk simulasi internal
 
-Nama peserta: **[isi]** · Tanggal: **[isi]** · Tanda tangan/persetujuan tercatat: **[isi]**  
-Nama dan persetujuan wali (bila diwajibkan): **[isi]**
+Pada pendaftaran, peserta dewasa membaca halaman informasi peserta, mencentang pernyataan memahami pengolahan data dan pengiriman teks ke Gemini, serta menyatakan berusia setidaknya 18 tahun. Server mencatat versi informasi dan waktu persetujuan bersama akun baru. Kotak tidak dicentang otomatis. Akun yang dibuat sebelum mekanisme ini memerlukan persetujuan terpisah sebelum diikutkan dalam simulasi. Pengelola menyimpan catatan rekrutmen dan permintaan berhenti di luar jawaban jurnal.
 
-Pengelola menyimpan bukti persetujuan melalui proses yang disetujui lembaga, **bukan** sebagai jawaban jurnal aplikasi. Jangan memulai pilot dengan kolom identitas kontak, retensi, atau prosedur berhenti masih kosong.
+**Keputusan yang belum selesai untuk siswa 12–18 tahun:** izin sekolah/institusi, dasar dan proses persetujuan wali, persetujuan siswa, materi pemberitahuan yang sesuai usia, serta prosedur penyimpanan bukti persetujuan. Jangan mengundang atau memproses data siswa di bawah 18 tahun sampai keputusan itu disetujui dan alurnya diimplementasikan. Checkbox dewasa di aplikasi tidak menggantikan persetujuan wali.

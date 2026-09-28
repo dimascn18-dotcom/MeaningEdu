@@ -111,7 +111,10 @@ if (registerForm) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nama, email, password, peran, wilayah_sekolah })
+        body: JSON.stringify({ nama, email, password, peran, wilayah_sekolah,
+          consent_accepted: document.getElementById('pilotConsent').checked,
+          adult_confirmed: document.getElementById('adultConfirmed').checked,
+          policy_version: 'pilot-1.0-2026-09-29' })
       });
 
       const data = await response.json();
@@ -182,7 +185,7 @@ async function fetchWithAuth(url, options = {}) {
   const token = localStorage.getItem('token');
   
   if (!token) {
-    alert('Sesi Anda telah habis. Silakan login kembali.');
+    sessionStorage.setItem('registrationNotice', 'Sesi berakhir. Masuk kembali untuk melanjutkan. Antrean jurnal tetap tersimpan di perangkat.');
     window.location.href = 'login.html';
     return;
   }

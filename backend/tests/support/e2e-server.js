@@ -82,7 +82,9 @@ async function resetFixture({ enrolled = true } = {}) {
     VALUES
       (1, 'Guru E2E', 'guru-e2e@example.test', 'unused', 'guru', 'aktif'),
       (2, 'Siswa Enrolled', 'siswa-e2e@example.test', 'unused', 'siswa', 'aktif'),
-      (3, 'Siswa Non Enrolled', 'outsider-e2e@example.test', 'unused', 'siswa', 'aktif');
+      (3, 'Siswa Non Enrolled', 'outsider-e2e@example.test', 'unused', 'siswa', 'aktif'),
+      (4, 'Admin E2E', 'admin-e2e@example.test', 'unused', 'admin', 'aktif'),
+      (5, 'Guru Menunggu', 'pending-e2e@example.test', 'unused', 'guru', 'pending');
     INSERT INTO kelas (id, guru_id, nama_kelas, topik_fisika, kode_kelas)
     VALUES (1, 1, 'Fisika E2E', 'Energi', 'E2E00001');
   `);

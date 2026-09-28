@@ -2,10 +2,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 require('dotenv').config();
+const PILOT_POLICY_VERSION = 'pilot-1.0-2026-09-29';
 
 // Fungsi untuk Register (Daftar)
 exports.register = async (req, res) => {
-  const { nama, email, password, peran, wilayah_sekolah } = req.body;
+  const { nama, email, password, peran, wilayah_sekolah, consent_accepted, adult_confirmed, policy_version } = req.body;
 
   const namaBersih = typeof nama === 'string' ? nama.trim() : '';
   const emailBersih = typeof email === 'string' ? email.trim().toLowerCase() : '';
@@ -17,6 +18,9 @@ exports.register = async (req, res) => {
   }
   if (!peranDiminta) {
     return res.status(400).json({ message: 'Peran pendaftaran tidak valid.' });
+  }
+  if (consent_accepted !== true || adult_confirmed !== true || policy_version !== PILOT_POLICY_VERSION) {
+    return res.status(400).json({ message: 'Simulasi internal hanya untuk peserta dewasa yang menyetujui informasi pilot terbaru.' });
   }
 
   try {
@@ -30,10 +34,10 @@ exports.register = async (req, res) => {
 
     const statusAkun = peranDiminta === 'guru' ? 'pending' : 'aktif';
     const newUser = await pool.query(
-      `INSERT INTO users (nama, email, password, peran, wilayah_sekolah, status_akun)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO users (nama, email, password, peran, wilayah_sekolah, status_akun, consent_policy_version, consented_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        RETURNING id, nama, email, peran, wilayah_sekolah, status_akun`,
-      [namaBersih, emailBersih, hashedPassword, peranDiminta, wilayah_sekolah || null, statusAkun]
+      [namaBersih, emailBersih, hashedPassword, peranDiminta, wilayah_sekolah || null, statusAkun, PILOT_POLICY_VERSION]
     );
 
     if (peranDiminta === 'guru') {

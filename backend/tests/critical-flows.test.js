@@ -44,17 +44,33 @@ test('registrasi guru menghasilkan akun pending tanpa token', async () => {
     if (sql.includes('INSERT INTO users')) {
       assert.equal(params[3], 'guru');
       assert.equal(params[5], 'pending');
+      assert.equal(params[6], 'pilot-1.0-2026-09-29');
       return { rows: [{ id: 8, nama: params[0], email: params[1], peran: 'guru', status_akun: 'pending' }] };
     }
     throw new Error(`Query tidak diharapkan: ${sql}`);
   };
 
   const response = await request(app).post('/auth/register').send({
-    nama: 'Guru Baru', email: 'Guru@Example.test', password: 'password-kuat', peran: 'guru'
+    nama: 'Guru Baru', email: 'Guru@Example.test', password: 'password-kuat', peran: 'guru',
+    consent_accepted: true, adult_confirmed: true, policy_version: 'pilot-1.0-2026-09-29'
   });
   assert.equal(response.status, 202);
   assert.equal(response.body.user.status_akun, 'pending');
   assert.equal(response.body.token, undefined);
+});
+
+test('registrasi menolak persetujuan hilang, versi lama, dan deklarasi belum dewasa', async () => {
+  queryHandler = async () => { throw new Error('Tidak boleh menulis akun tanpa consent'); };
+  const base = { nama:'Peserta', email:'peserta@example.test', password:'password-kuat', peran:'siswa' };
+  for (const override of [
+    {},
+    {consent_accepted:true, adult_confirmed:false, policy_version:'pilot-1.0-2026-09-29'},
+    {consent_accepted:true, adult_confirmed:true, policy_version:'lama'}
+  ]) {
+    const response = await request(app).post('/auth/register').send({...base,...override});
+    assert.equal(response.status,400);
+    assert.match(response.body.message,/peserta dewasa/i);
+  }
 });
 
 test('akun guru pending tidak dapat login', async () => {

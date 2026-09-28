@@ -51,6 +51,9 @@
       background: var(--white);
     }
     .form-group input::placeholder { color: var(--text-lt); }
+    .form-group .consent-choice { display:block; line-height:1.6; font-weight:500; }
+    .form-group .consent-choice input[type=checkbox] { display:inline-block; width:20px; height:20px; padding:0; margin:0 7px 0 0; vertical-align:middle; }
+    .consent-choice a { text-decoration:underline; }
     .auth-submit {
       width: 100%; padding: 14px;
       background: var(--forest); color: var(--white);
@@ -87,7 +90,7 @@
         MeaningEdu
       </div>
       <h1>Buat Akun Baru</h1>
-      <p>Daftar untuk mengikuti pilot pembelajaran MeaningEdu.</p>
+      <p>Daftar untuk simulasi internal MeaningEdu dengan peserta dewasa.</p>
 
       <div class="role-tabs">
         <button type="button" class="role-tab active" aria-pressed="true" onclick="setRole('guru', this)">🧑‍🏫 Saya Guru</button>
@@ -99,13 +102,13 @@
         <input type="hidden" id="peran" value="guru" />
         <div class="form-row">
           <div class="form-group">
-          <label for="nama">Nama Lengkap</label>
+          <label for="nama">Nama atau nama samaran</label>
           <input autocomplete="name" type="text" id="nama" placeholder="Budi Santoso" required />
         </div>
         
         <div class="form-group">
           <label for="email">Email</label>
-          <input autocomplete="username" type="email" id="email" placeholder="nama@sekolah.sch.id" required />
+          <input autocomplete="username" type="email" id="email" placeholder="nama@example.com" required />
         </div>
         
 
@@ -128,8 +131,14 @@
           <input autocomplete="new-password" type="password" id="password" placeholder="Minimal 8 karakter" minlength="8" required />
         </div>
         </div>
+        <div class="form-group">
+          <label class="consent-choice" for="pilotConsent"><input type="checkbox" id="pilotConsent" required /> Saya telah membaca <a href="pilot-info.html" target="_blank" rel="noopener">informasi peserta pilot</a>, bersedia ikut secara sukarela, dan memahami bahwa teks yang saya kirim ke fitur AI diproses oleh penyedia Gemini.</label>
+        </div>
+        <div class="form-group">
+          <label class="consent-choice" for="adultConfirmed"><input type="checkbox" id="adultConfirmed" required /> Saya berusia setidaknya 18 tahun. Pendaftaran siswa di bawah 18 tahun belum dibuka.</label>
+        </div>
         <button type="submit" class="auth-submit">Buat Akun — Gratis</button>
-        <p class="terms-note">Data akun dan refleksi digunakan untuk pembelajaran. Teks yang dianalisis AI dikirim ke penyedia AI. Hindari menulis data sensitif. Baca <a href="index.html#privasi">catatan privasi pilot</a>.</p>
+        <p class="terms-note">Persetujuan dicatat bersama versi penjelasan dan waktu pendaftaran. Kontak pengelola: <a href="mailto:dimas.cn18@upi.edu">dimas.cn18@upi.edu</a>.</p>
       </form>
 
       <div class="auth-footer">

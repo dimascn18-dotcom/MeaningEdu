@@ -2,14 +2,16 @@
 
 ## Tujuan dan batas
 
-Pilot menguji apakah guru dan siswa dapat menyelesaikan satu siklus pembelajaran dengan lancar. Tahap 1.0 memoles antarmuka MeaningEdu 03; tidak menambah konstruk, formula, API pedagogis, atau migrasi. MLI `MLI-v2.0-EW` tetap memakai bobot setara 20% per dimensi, missing data tetap `null`, dan rata-rata kelas memerlukan cakupan minimal 70%. Bobot ini keputusan prototype, bukan validasi psikometrik. Perubahan MLI hanya observasi, bukan bukti kausal keberhasilan intervensi.
+Pilot menguji apakah guru dan siswa dapat menyelesaikan satu siklus pembelajaran dengan lancar. Tahap 1.0 memoles antarmuka MeaningEdu 03 tanpa mengubah konstruk, formula, atau API pedagogis. Kandidat setelah prerelease menambah migration catatan persetujuan `0011_pilot_consent.sql`. MLI `MLI-v2.0-EW` tetap memakai bobot setara 20% per dimensi, missing data tetap `null`, dan rata-rata kelas memerlukan cakupan minimal 70%. Bobot ini keputusan prototype, bukan validasi psikometrik. Perubahan MLI hanya observasi, bukan bukti kausal keberhasilan intervensi.
+
+Kegiatan saat ini dibatasi sebagai simulasi internal mahasiswa/calon guru dewasa, dengan Dimas Cahya Nugraha sebagai pengelola proyek mahasiswa dan kontak dimas.cn18@upi.edu. UPI tidak dinyatakan sebagai penyelenggara. Periode rencana Oktober–November 2026, dua aktivitas dalam dua minggu. Rencana satu guru dan sekitar 30 siswa usia 12–18 tahun belum dapat dijalankan karena izin sekolah/institusi dan mekanisme persetujuan wali belum diputuskan. Gunakan [informasi peserta](PILOT_PARTICIPANT_INFO.md) yang sudah diisi untuk simulasi; jangan mengundang siswa di bawah 18 tahun melalui checkbox pendaftaran dewasa.
 
 ## Sebelum pilot
 
-1. Pengelola memastikan versi 02, 03, dan polishing 1.0 telah dikonsolidasikan sebelum deployment. Branch polishing berangkat dari `9db58cfe74ba93cc4063de006c863cd10df37838`; `main` yang lama tidak cukup.
+1. Gunakan `main` yang sudah memuat rantai 02, 03, dan polishing 1.0. Tag `v1.0.0-pilot` pada `65577e61fec85fab868a8277847758177ba45be9` adalah prerelease; catat SHA persis dari kandidat deployment beserta hasil CI terbaru, termasuk perubahan setelah tag.
 2. Jalankan CI dengan PostgreSQL 16: unit/API, migrasi fresh dan legacy, browser E2E, audit dependency, dan secret scan. Gunakan database uji terpisah; fixture E2E menghapus data `users` beserta data terkait.
-3. Verifikasi environment Vercel/Neon/Blob/Gemini dan origin CORS. Jalankan migrasi yang sudah tersedia, buat admin, dan setujui akun guru. Tidak ada migrasi baru khusus polishing.
-4. Pengelola mengisi dan menyetujui [informasi peserta dan consent](PILOT_PARTICIPANT_INFO.md): penanggung jawab, kontak bantuan, masa simpan, prosedur berhenti dan penghapusan, serta persetujuan peserta/wali bila perlu. Jelaskan pengiriman teks ke penyedia AI. Gunakan materi tanpa data pribadi sensitif dan akun uji terlebih dahulu.
+3. Verifikasi environment Vercel/Neon/Blob/Gemini dan origin CORS. Jalankan semua migrasi termasuk `0011_pilot_consent.sql` pada database pilot terpisah, buat admin, dan setujui akun guru. Jalankan migrasi pada database uji sebelum pilot; catat backup dan hasilnya.
+4. Pengelola memeriksa kembali [informasi peserta dan consent](PILOT_PARTICIPANT_INFO.md) sebelum membuka simulasi internal. Checkbox pendaftaran dan timestamp hanya mencakup akun baru yang menyatakan dewasa; akun lama memerlukan persetujuan terpisah. Catat tanggal akhir kegiatan dan tenggat pembersihan database maksimal enam bulan setelahnya. Gunakan materi tanpa data pribadi sensitif dan akun uji terlebih dahulu.
 5. Guru menyiapkan satu kelas, dua aktivitas berurutan, minimal dua jalur per aktivitas, dan satu PDF maksimal 10 MB. Sertakan alternatif teks untuk diagram atau PDF hasil pemindaian yang sulit dibaca pembaca layar.
 6. Latihan di desktop dan ponsel nyata; cek keyboard dan pembaca layar (misalnya NVDA/TalkBack), suara bahasa Indonesia, zoom 200%, jaringan lambat, dan koneksi terputus. Automated axe tidak membuktikan kepatuhan WCAG penuh.
 
@@ -31,9 +33,9 @@ Catat waktu penyelesaian, langkah yang membingungkan, kegagalan simpan, dan kome
 | Koneksi putus pada jurnal akhir | Simpan jurnal akhir untuk mengantrekannya. Sambungkan kembali dan tunggu pemberitahuan sinkronisasi. Jangan hapus data browser. |
 | Antrean gagal karena sesi habis | Masuk kembali dengan akun yang sama. Antrean tidak dipindahkan ke akun lain. |
 | Antrean ditolak server | Pertahankan perangkat/data browser dan hubungi pengelola; jangan mengklaim jurnal telah terkirim. |
-| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache aplikasi versi 1.0 adalah `meaningedu-v9`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
+| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache kandidat perbaikan UI adalah `meaningedu-v10`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
 
-Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest sudah dicache. Konten API privat tidak dicache. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI, aktivitas baru, video eksternal, PDF, dan unduhan pertama font disleksia CDN membutuhkan jaringan. Draf form kini disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
+Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest dan font OpenDyslexic lokal masuk cache shell. Konten API privat tidak dicache. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI, aktivitas baru, video eksternal, dan PDF membutuhkan jaringan. Draf form kini disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
 
 ## Bukti manual dan provider sebelum mulai
 

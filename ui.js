@@ -13,7 +13,12 @@
     }
     root.append(box);
   }
-  window.MeaningEduUI = Object.freeze({ showError });
+  function notice(root, message, kind = 'error') {
+    root.textContent = message;
+    root.className = `form-status ${kind === 'success' ? 'status-success' : 'status-error'}`;
+    root.setAttribute('role', kind === 'success' ? 'status' : 'alert');
+  }
+  window.MeaningEduUI = Object.freeze({ showError, notice });
   function enhance(root) {
     if (!(root instanceof Element)) return;
     const elements = [root, ...root.querySelectorAll('.aktivitas-chip,.kelas-item,.jalur-tab,.incl-btn,.loading-state,.empty-hint,.step-dot')];

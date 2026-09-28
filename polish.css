@@ -52,6 +52,7 @@ details ul { list-style:disc; padding-left:20px; }
 #interventionPanel select,#interventionHistory input,#interventionHistory select { width:100%; margin:8px 0; }
 #pathRecommendation { background:#eef4ed; }
 .form-status:not(:empty),.ui-error { background:#fff6de; border-left:4px solid var(--gold-text); padding:14px; margin:16px 0; }
+.form-status.status-success:not(:empty) { background:#eef7ee; border-left-color:#28754a; }
 .ui-error { color:#762c21; }
 .connection-status { padding:10px 16px; border:1px solid var(--border); border-radius:8px; margin:0 0 20px; background:white; color:var(--text-md); font-size:.9rem; }
 .terms-note a,.field-hint a,#privasi a { text-decoration:underline; }
