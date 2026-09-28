@@ -5,7 +5,7 @@ const API_BASE_URL = self.MEANINGEDU_CONFIG.API_BASE_URL;
 const API_ORIGIN = new URL(API_BASE_URL).origin;
 // PENTING: naikkan angka versi ini SETIAP kali Anda deploy perubahan baru.
 // Ini yang memaksa browser membuang cache lama tanpa perlu Ctrl+F5.
-const CACHE_NAME = 'meaningedu-v5';
+const CACHE_NAME = 'meaningedu-v7';
 const DB_NAME = 'MeaningEduDB';
 const DB_VERSION = 1;
 const JOURNAL_STORE = 'jurnalOffline';
@@ -186,6 +186,10 @@ async function sinkronisasikanJurnalTunda() {
         },
         body: JSON.stringify({
           client_submission_id: jurnal.client_submission_id,
+          jawaban_kesenjangan: jurnal.jawaban_kesenjangan,
+          jawaban_strategi: jurnal.jawaban_strategi,
+          mli_a1: jurnal.mli_a1, mli_a2: jurnal.mli_a2,
+          mli_c1: jurnal.mli_c1, mli_c2: jurnal.mli_c2,
           jawaban_awal: jurnal.jawaban_awal,
           pertanyaan_ai: jurnal.pertanyaan_ai,
           jawaban_lanjutan: jurnal.jawaban_lanjutan,

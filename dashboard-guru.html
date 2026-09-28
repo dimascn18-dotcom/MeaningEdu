@@ -767,6 +767,7 @@ ${data.pertanyaan_kesimpulan}`;
       }
 
       function barCell(value) {
+        if (value === null || value === undefined) return '<span>Belum tersedia</span>';
         const v = Number(value) || 0;
         return `<div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(v,100)}%"></div></div><span>${v.toFixed(0)}</span></div>`;
       }
@@ -775,8 +776,10 @@ ${data.pertanyaan_kesimpulan}`;
         if (currentData.length === 0) return null;
         const kunci = ['relevansi_kontekstual', 'otonomi', 'persepsi_kompetensi', 'keterlibatan_kognitif', 'refleksi_metakognitif'];
         const total = { relevansi_kontekstual: 0, otonomi: 0, persepsi_kompetensi: 0, keterlibatan_kognitif: 0, refleksi_metakognitif: 0 };
-        currentData.forEach(r => kunci.forEach(k => total[k] += Number(r[k]) || 0));
-        const n = currentData.length;
+        const complete = currentData.filter(r => r.status === 'COMPLETE');
+        if (complete.length === 0) return null;
+        complete.forEach(r => kunci.forEach(k => total[k] += Number(r[k])));
+        const n = complete.length;
         return {
           relevansi: (total.relevansi_kontekstual / n).toFixed(1),
           otonomi: (total.otonomi / n).toFixed(1),
@@ -809,8 +812,8 @@ ${data.pertanyaan_kesimpulan}`;
 
       function renderTable() {
         const rows = [...currentData].sort((a, b) => {
-          const va = Number(a[currentSort.key]) || 0;
-          const vb = Number(b[currentSort.key]) || 0;
+          const va = a[currentSort.key] == null ? -1 : Number(a[currentSort.key]);
+          const vb = b[currentSort.key] == null ? -1 : Number(b[currentSort.key]);
           return currentSort.dir === 'asc' ? va - vb : vb - va;
         });
 
@@ -822,6 +825,7 @@ ${data.pertanyaan_kesimpulan}`;
           { key: 'keterlibatan_kognitif', label: 'Keterlibatan', type: 'bar' },
           { key: 'refleksi_metakognitif', label: 'Refleksi', type: 'bar' },
           { key: 'skor_akhir', label: 'Skor MLI', type: 'badge' },
+          { key: 'explanation', label: 'Dasar skor', type: 'explanation' },
         ];
 
         let html = '<table class="mli-table"><thead><tr>';
@@ -839,7 +843,18 @@ ${data.pertanyaan_kesimpulan}`;
             cols.forEach(c => {
               const val = r[c.key];
               if (c.type === 'bar') html += `<td>${barCell(val)}</td>`;
-              else if (c.type === 'badge') html += `<td><span class="skor-badge ${skorClass(val)}">${Number(val).toFixed(1)}</span></td>`;
+              else if (c.type === 'badge') html += `<td>${val == null ? 'Belum lengkap' : Number(val).toFixed(1)}</td>`;
+              else if (c.type === 'explanation') {
+                const details = Object.values(r.dimensions || {}).map(d => {
+                  const indicators = Object.entries(d.indicators || {}).map(([key, item]) =>
+                    `<li>${key}: ${item ? `${item.level}/3${item.evidence ? ` — “${escapeHtml(item.evidence.quote)}”` : ' — tidak ada bukti'}` : 'belum dianalisis'}</li>`
+                  ).join('') + Object.entries(d.survey_items || {}).map(([key, value]) => `<li>${key}: ${value == null ? 'belum dijawab' : `${value}/5`}</li>`).join('');
+                  return `<li><strong>${escapeHtml(d.label)}:</strong> ${d.score == null ? escapeHtml(d.status) : d.score.toFixed(1) + '/100'}; ${escapeHtml(d.method)}${indicators ? `<ul>${indicators}</ul>` : ''}</li>`;
+                }).join('');
+                const support = r.supporting_data || {};
+                const supportText = support.note ? `<p>${escapeHtml(support.note)} Konteks aktivitas: ${escapeHtml(support.pertanyaan_pemantik || 'tidak tersedia')}. Pilihan jalur eksplisit: ${(support.riwayat_jalur || []).map(p => escapeHtml(p.label)).join(', ') || 'tidak tercatat'}.</p>` : '';
+                html += `<td><details><summary>Lihat data &amp; bukti</summary><p>${escapeHtml(r.explanation || '')}</p><ul>${details}</ul>${supportText}<small>${escapeHtml(r.disclaimer || '')}</small></details></td>`;
+              }
               else html += `<td>${escapeHtml(val ?? '-')}</td>`;
             });
             html += '</tr>';
@@ -879,7 +894,8 @@ ${data.pertanyaan_kesimpulan}`;
             return;
           }
           currentData = data.detail_siswa || [];
-          const rata = Number(data.rata_rata_kelas) || 0;
+          const rata = data.rata_rata_kelas == null ? null : Number(data.rata_rata_kelas);
+          const coverage = data.coverage || { complete_students: 0, enrolled_students: 0, ratio: 0 };
 
           area.innerHTML = `
             <div class="ai-alert" id="aiAlertBox">
@@ -887,15 +903,21 @@ ${data.pertanyaan_kesimpulan}`;
               <div><strong>Saran AI Pedagogical Advisor</strong><p>Memuat saran...</p></div>
             </div>
             <div class="mli-summary">
-              <div class="score">${rata.toFixed(1)}</div>
+              <div class="score">${rata == null ? 'Belum tersedia' : rata.toFixed(1)}</div>
               <div>
                 <div class="score-label">Rata-rata Meaningful Learning Index kelas</div>
-                <div class="score-label">Berdasarkan ${currentData.length} jurnal refleksi siswa</div>
+                <div class="score-label">MLI v2 · ${coverage.complete_students}/${coverage.enrolled_students} siswa lengkap (${(coverage.ratio * 100).toFixed(0)}%); minimal 70% untuk rata-rata kelas.</div>
+                ${currentData.some(r => !r.dimensions || Object.values(r.dimensions).some(d => d.status === 'PENDING_ANALYSIS')) ? '<button id="retryMLI" type="button">Ulangi analisis tertunda</button>' : ''}
               </div>
             </div>
           `;
           renderTable();
-          muatSaranAI(rata);
+          document.getElementById('retryMLI')?.addEventListener('click', async () => {
+            const retry = await fetchWithAuth(`/mli/retry/${aktivitasId}`, { method: 'POST' });
+            if (retry?.ok) muatMLI(aktivitasId);
+          });
+          if (rata !== null) muatSaranAI(rata);
+          else document.getElementById('aiAlertBox').style.display = 'none';
         } catch (err) {
           console.error(err);
           area.innerHTML = '<div class="empty-state"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';
@@ -935,11 +957,17 @@ ${data.pertanyaan_kesimpulan}`;
 
         // Satu polyline per dimensi
         DIMENSI_TREN.forEach((dim) => {
-          const points = trenRows.map((row, i) => `${xFor(i)},${yFor(Number(row[dim.key]) || 0)}`).join(' ');
-          svg += `<polyline points="${points}" fill="none" stroke="${dim.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+          let segment = [];
+          const flush = () => {
+            if (segment.length > 1) svg += `<polyline points="${segment.join(' ')}" fill="none" stroke="${dim.color}" stroke-width="2.5"/>`;
+            segment = [];
+          };
           trenRows.forEach((row, i) => {
-            svg += `<circle cx="${xFor(i)}" cy="${yFor(Number(row[dim.key]) || 0)}" r="3" fill="${dim.color}"><title>${dim.label} — ${row[dim.key]}</title></circle>`;
+            if (row[dim.key] == null) { flush(); return; }
+            segment.push(`${xFor(i)},${yFor(Number(row[dim.key]))}`);
+            svg += `<circle cx="${xFor(i)}" cy="${yFor(Number(row[dim.key]))}" r="3" fill="${dim.color}"><title>${dim.label} — ${row[dim.key]}</title></circle>`;
           });
+          flush();
         });
 
         // Label sumbu-x (tanggal per minggu)
@@ -967,6 +995,10 @@ ${data.pertanyaan_kesimpulan}`;
             return;
           }
 
+          const validWeeks = data.tren_mingguan.filter(r => r.class_status === 'REPRESENTATIVE');
+          const insufficient = data.tren_mingguan.filter(r => r.class_status !== 'REPRESENTATIVE');
+          const coverageNote = insufficient.length
+            ? `<p>${insufficient.map(r => `${formatTanggalMinggu(r.minggu)}: ${r.jumlah_siswa}/${r.enrolled_students} siswa lengkap (${(r.coverage_ratio * 100).toFixed(0)}%)`).join('; ')} — di bawah batas 70%, tanpa skor kelas.</p>` : '';
           let legend = '<div class="tren-legend">' + DIMENSI_TREN.map(d =>
             `<div class="tren-legend-item"><span class="tren-legend-dot" style="background:${d.color}"></span>${d.label}</div>`
           ).join('') + '</div>';
@@ -979,7 +1011,7 @@ ${data.pertanyaan_kesimpulan}`;
               ).join('') + '</div>';
           }
 
-          area.innerHTML = `<div class="tren-svg-wrap">${renderTrenChart(data.tren_mingguan)}</div>${legend}${perhatianHtml}`;
+          area.innerHTML = `${validWeeks.length ? `<div class="tren-svg-wrap">${renderTrenChart(data.tren_mingguan)}</div>${legend}` : '<p>Belum ada minggu dengan cakupan MLI v2 yang memadai.</p>'}${coverageNote}`;
         } catch (err) {
           console.error(err);
           area.innerHTML = '<div class="tren-empty"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';

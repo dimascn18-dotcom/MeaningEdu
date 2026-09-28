@@ -125,9 +125,8 @@ exports.lihatAktivitas = async (req, res) => {
   }
 };
 
-// BARU: Siswa memilih salah satu jalur belajar. Ini mencatat log yang
-// nanti jadi dasar data Otonomi & Keterlibatan pada MLI (menggantikan
-// pendekatan lama yang cuma memakai durasi_belajar).
+// Endpoint ini hanya dipanggil oleh klik siswa pada tab jalur belajar.
+// Pembukaan tab awal otomatis tidak dikirim ke sini.
 exports.pilihJalur = async (req, res) => {
   const { aktivitas_id } = req.params;
   const { jalur_id } = req.body;
@@ -162,7 +161,8 @@ exports.pilihJalur = async (req, res) => {
     }
 
     const logBaru = await pool.query(
-      'INSERT INTO log_pilihan_jalur (siswa_id, aktivitas_id, jalur_id) VALUES ($1, $2, $3) RETURNING *',
+      `INSERT INTO log_pilihan_jalur (siswa_id, aktivitas_id, jalur_id, event_type)
+       VALUES ($1, $2, $3, 'explicit_choice') RETURNING *`,
       [siswa_id, aktivitas_id, jalur_id]
     );
 
