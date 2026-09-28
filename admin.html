@@ -19,9 +19,12 @@
     .empty { background:white; border-radius:14px; padding:28px; text-align:center; color:var(--text-lt); }
     @media(max-width:640px){ .request-card,.admin-head{align-items:flex-start;flex-direction:column}.request-actions{width:100%}.request-actions button{flex:1} }
   </style>
+  <link rel="stylesheet" href="polish.css" />
+  <script defer src="ui.js"></script>
 </head>
 <body>
-  <main class="admin-shell">
+  <a class="skip-link" href="#mainContent">Lewati ke konten utama</a>
+  <main id="mainContent" tabindex="-1" class="admin-shell">
     <div class="admin-head">
       <div><p class="section-eyebrow">Administrasi Akun</p><h1>Persetujuan Guru</h1></div>
       <button class="btn-outline" id="logoutAdmin">Keluar</button>

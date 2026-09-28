@@ -1,0 +1,91 @@
+/* MeaningEdu 1.0: shared pilot UI. Loaded after page styles. */
+:root { --text-lt:#595f59; --forest-lt:#386b4b; --border:#778578; --gold-text:#75551b; }
+body { overflow-x:visible; }
+[hidden] { display:none !important; }
+:focus-visible { outline:3px solid #75551b !important; outline-offset:3px; }
+html { scroll-padding-top:6rem; }
+.skip-link { position:fixed; top:8px; left:12px; transform:translateY(-180%); z-index:1000; padding:12px 18px; background:var(--forest); color:white; border-radius:8px; }
+.skip-link:focus { transform:none; }
+main { min-width:0; }
+h1,h2,h3,p,a,button,summary { overflow-wrap:anywhere; }
+.panel h2, .panel h3 { color:var(--forest); font-size:1.1rem; text-transform:none; letter-spacing:0; margin-bottom:12px; }
+.panel p { margin-bottom:12px; }
+button,input,select,textarea { font:inherit; }
+button,summary,.exit-link,.workspace-steps a,.ganti-kelas-link { min-height:44px; }
+button,summary { cursor:pointer; }
+button:disabled { cursor:wait; }
+input:not([type=checkbox]):not([type=hidden]),select,textarea { max-width:100%; min-height:44px; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:1rem !important; color:var(--text); background:var(--cream); }
+textarea { width:100%; resize:vertical; }
+label { display:block; color:var(--forest); font-size:1rem !important; font-weight:600; margin:12px 0 6px; }
+input[type=checkbox] { width:20px; height:20px; }
+button:not([class]), #pathRecommendation button, #interventionHistory button { padding:10px 16px; border:1px solid var(--forest); border-radius:8px; background:var(--forest); color:white; margin:8px 8px 8px 0; }
+.gd-shell { max-width:1240px; }
+.gd-grid { grid-template-columns:240px minmax(0,1fr); }
+.gd-grid > *, .panel, .ws-shell, .auth-card, .form-row > * { min-width:0; }
+.gd-grid aside { position:sticky; top:100px; }
+.panel { padding:24px; box-shadow:0 3px 16px #1a3a2a0a; border:1px solid #d5dfd4; }
+.panel + .panel { margin-top:24px; }
+.mli-summary { flex-wrap:wrap; align-items:flex-start; padding:20px; }
+.mli-summary .score { line-height:1.2; font-size:2rem; }
+.score-label,.empty-hint,.field-hint,.form-status,.locked-notice { font-size:1rem !important; }
+.attention-note { padding:16px; margin-bottom:20px; background:#fff6de; border-left:4px solid var(--gold-text); border-radius:8px; }
+.table-scroll,.tren-svg-wrap { max-width:100%; overflow:auto; }
+.mli-table { min-width:850px; }
+.mli-table caption { text-align:left; padding:12px; font-weight:600; }
+.mli-table th button { background:transparent; color:var(--forest); border:0; padding:8px; font-size:.875rem; font-weight:700; }
+.mli-table summary { min-width:160px; }
+.mli-table td { vertical-align:top; }
+.mli-table details[open] { min-width:260px; max-width:380px; }
+details ul { list-style:disc; padding-left:20px; }
+.ai-alert { margin-top:16px; }
+.kelas-item .k-topik,.kelas-id-badge,.dim-badge,.ms-dim-badge,.materi-badge,.ms-tipe,.tren-legend { font-size:.875rem !important; opacity:1; }
+.kelas-item.active { color:white; }
+.copy-code { width:100%; background:transparent; border:1px solid var(--border); border-radius:8px; padding:8px; margin:0 0 16px; color:var(--forest); }
+.ws-shell { max-width:1040px; }
+.workspace-steps { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+.workspace-steps a { display:flex; align-items:center; padding:8px 16px; border:1px solid var(--border); border-radius:24px; background:white; color:var(--forest); }
+#materiContent { max-width:72ch; }
+.incl-toolbar { margin:16px 0; }
+.incl-btn,.materi-tool-btn,.ai-tool-btn,.aktivitas-chip,.jalur-tab,.link-btn { font-size:.95rem; }
+.ganti-kelas-link { background:white; border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
+#teacherReflectionPanel textarea,#interventionPanel textarea { margin-bottom:12px; }
+#interventionPanel select,#interventionHistory input,#interventionHistory select { width:100%; margin:8px 0; }
+#pathRecommendation { background:#eef4ed; }
+.form-status:not(:empty),.ui-error { background:#fff6de; border-left:4px solid var(--gold-text); padding:14px; margin:16px 0; }
+.ui-error { color:#762c21; }
+.connection-status { padding:10px 16px; border:1px solid var(--border); border-radius:8px; margin:0 0 20px; background:white; color:var(--text-md); font-size:.9rem; }
+.terms-note a,.field-hint a,#privasi a { text-decoration:underline; }
+.skor-sedang { color:#755015; }
+.materi-tool-btn.active { background:var(--forest); }
+.katex-display { overflow-x:auto; overflow-y:hidden; padding:6px 0; max-width:100%; }
+.hero-visual { pointer-events:none; }
+.mock-title { color:var(--text-md); }
+@media (min-width:768px) and (max-width:1023px) { .gd-grid { grid-template-columns:1fr; } .gd-grid aside { position:static; } #daftarKelas { display:grid; grid-template-columns:1fr 1fr; gap:12px; } }
+@media (max-width:767px) {
+ .gd-grid { grid-template-columns:1fr; } .gd-grid aside { position:static; }
+ .gd-shell,.ws-shell { padding:28px 16px 64px; }
+ .panel,.journal-card { padding:20px 16px; }
+ .auth-wrap { padding:100px 16px 40px; } .auth-card { padding:28px 20px; }
+ .nav-inner { padding-left:16px; padding-right:16px; }
+ .workspace-steps { display:grid; grid-template-columns:1fr 1fr; }
+ .workspace-steps a { padding:8px 12px; font-size:.9rem; }
+ .kelas-form { align-items:stretch; } .kelas-form input { min-width:0; width:100%; flex-basis:100%; }
+ .mli-summary { gap:12px; } .builder-tools > button { flex:1 1 100%; }
+ .form-row { grid-template-columns:1fr; }
+ .hero-visual { position:static; width:100%; padding:24px 16px; transform:none; }
+ .hero { padding-bottom:24px; } .hero-title { font-size:2.3rem; }
+ .hero-stats { flex-wrap:wrap; } .stat-divider { display:none; }
+}
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+.section-eyebrow { color:var(--gold-text); }
+.mli-num { color:var(--forest-md); opacity:1; }
+.footer-bottom { color:var(--sage-lt); }
+.materi-badge,.ms-dim-badge { color:var(--gold-text); }
+.gd-shell,.ws-shell { padding-top:110px; }
+.panel > p,.journal-sub { font-size:1rem !important; }
+.exit-link { display:inline-flex; align-items:center; padding:8px 12px; }
+button { min-width:44px; }
+.mobile-menu a { display:flex; align-items:center; min-height:44px; }
+.mli-table th button { overflow-wrap:normal; }
+@media (max-width:767px) { .gd-shell,.ws-shell { padding-top:100px; } }
+.footer-bottom p { color:var(--sage-lt); }

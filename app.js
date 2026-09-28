@@ -20,6 +20,11 @@ function safeHttpUrl(value) {
   }
 }
 
+function currentUser() {
+  try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+  catch { localStorage.removeItem('user'); return null; }
+}
+
 // --- Navbar scroll effect ---
 const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
@@ -34,25 +39,27 @@ window.addEventListener('scroll', () => {
 // --- Mobile Menu Toggle ---
 function toggleMenu() {
   const menu = document.getElementById('mobileMenu');
-  menu.classList.toggle('open');
+  const open = menu.classList.toggle('open');
+  document.querySelector('.hamburger')?.setAttribute('aria-expanded', String(open));
 }
 
 // Close mobile menu when clicking a link
 document.querySelectorAll('.mobile-menu a').forEach(link => {
   link.addEventListener('click', () => {
     document.getElementById('mobileMenu').classList.remove('open');
+    document.querySelector('.hamburger')?.setAttribute('aria-expanded', 'false');
   });
 });
 
 // --- Feature Tabs ---
 function switchTab(tab, btn) {
   // Remove active from all buttons
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
   // Remove active from all panels
   document.querySelectorAll('.feature-panel').forEach(p => p.classList.remove('active'));
 
   // Activate clicked button and panel
-  btn.classList.add('active');
+  btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
   const panel = document.getElementById('tab-' + tab);
   if (panel) panel.classList.add('active');
 }
@@ -60,54 +67,18 @@ function switchTab(tab, btn) {
 // --- Smooth scroll offset for fixed navbar ---
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   anchor.addEventListener('click', function(e) {
-    const target = document.querySelector(this.getAttribute('href'));
+    const href = this.getAttribute('href');
+    if (!href || href === '#') return;
+    const target = document.querySelector(href);
     if (target) {
       e.preventDefault();
       const offset = 80;
       const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
-      window.scrollTo({ top, behavior: 'smooth' });
+      window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      if (target.matches('main,[tabindex]')) target.focus({ preventScroll:true });
     }
   });
 });
-
-// --- Animate elements on scroll ---
-const observerOptions = {
-  threshold: 0.12,
-  rootMargin: '0px 0px -40px 0px'
-};
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
-  });
-}, observerOptions);
-
-// Add fade-in class to cards and cards
-const animatedEls = document.querySelectorAll(
-  '.problem-card, .feature-card, .mli-card, .audience-card, .flow-step'
-);
-animatedEls.forEach((el, i) => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(24px)';
-  el.style.transition = `opacity 0.5s ease ${i * 0.07}s, transform 0.5s ease ${i * 0.07}s`;
-  observer.observe(el);
-});
-
-// Visible state
-document.head.insertAdjacentHTML('beforeend', `
-  <style>
-    .problem-card.visible,
-    .feature-card.visible,
-    .mli-card.visible,
-    .audience-card.visible,
-    .flow-step.visible {
-      opacity: 1 !important;
-      transform: translateY(0) !important;
-    }
-  </style>
-`);
 
 // --- PWA Service Worker registration ---
 if ('serviceWorker' in navigator) {
@@ -125,6 +96,9 @@ if (registerForm) {
     e.preventDefault(); // Mencegah halaman reload
 
     // Ambil data dari form
+    const status = document.getElementById('authStatus');
+    const submit = registerForm.querySelector('[type=submit]');
+    submit.disabled = true; status.textContent = 'Mendaftarkan akun…';
     const nama = document.getElementById('nama').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -143,27 +117,31 @@ if (registerForm) {
       const data = await response.json();
 
       if (response.ok) {
-        alert(data.message || 'Pendaftaran berhasil! Silakan masuk.');
+        sessionStorage.setItem('registrationNotice', data.message || 'Pendaftaran berhasil. Silakan masuk.');
         window.location.href = 'login.html'; // Arahkan ke halaman login
       } else {
-        alert(`Gagal: ${data.message}`);
+        status.textContent = data.message || 'Pendaftaran gagal. Periksa isian Anda.'; status.focus();
       }
     } catch (error) {
       console.error('Error saat pendaftaran:', error);
-      alert('Terjadi kesalahan koneksi ke server.');
-    }
+      status.textContent = 'Koneksi gagal. Isian tetap tersimpan di halaman; coba kirim kembali.'; status.focus();
+    } finally { submit.disabled = false; }
   });
 }
 // Menangani proses Masuk (Login)
 const loginForm = document.getElementById('loginForm');
 
 if (loginForm) {
+  const notice = sessionStorage.getItem('registrationNotice');
+  if (notice) { document.getElementById('authStatus').textContent = notice; sessionStorage.removeItem('registrationNotice'); }
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
+    const status = document.getElementById('authStatus');
+    const submit = loginForm.querySelector('[type=submit]');
+    submit.disabled = true; status.textContent = 'Memeriksa akun…';
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -180,7 +158,7 @@ if (loginForm) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        alert('Berhasil masuk!');
+        status.textContent = 'Berhasil masuk. Membuka ruang belajar…';
 
         // 2. Arahkan ke dashboard yang sesuai dengan peran
         if (data.user.peran === 'admin') {
@@ -191,12 +169,12 @@ if (loginForm) {
           window.location.href = 'workspace-siswa.html'; // Sesuaikan nama file Anda
         }
       } else {
-        alert(`Gagal masuk: ${data.message}`);
+        status.textContent = data.message || 'Email atau kata sandi tidak cocok.'; status.focus();
       }
     } catch (error) {
       console.error('Error saat login:', error);
-      alert('Terjadi kesalahan koneksi ke server.');
-    }
+      status.textContent = 'Koneksi gagal. Periksa jaringan lalu coba masuk kembali.'; status.focus();
+    } finally { submit.disabled = false; }
   });
 }
 // Fungsi bantuan untuk melakukan fetch dengan Token JWT
@@ -215,10 +193,22 @@ async function fetchWithAuth(url, options = {}) {
     ...options.headers
   };
 
-  return fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+  const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+  if (response.status === 401) {
+    localStorage.removeItem('token'); localStorage.removeItem('user');
+    sessionStorage.setItem('registrationNotice', 'Sesi berakhir. Masuk kembali untuk melanjutkan. Antrean jurnal tetap tersimpan di perangkat.');
+    window.location.href = 'login.html';
+  }
+  return response;
 }
 
 // Contoh Penggunaan Nanti:
 // fetchWithAuth('/kelas')
 //   .then(res => res.json())
 //   .then(data => tampilkanKelas(data));
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('mobileMenu')?.classList.contains('open')) {
+    toggleMenu(); document.querySelector('.hamburger')?.focus();
+  }
+});

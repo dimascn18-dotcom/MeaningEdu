@@ -81,9 +81,12 @@
     .auth-footer a { color: var(--forest-md); font-weight: 600; }
     .auth-footer a:hover { text-decoration: underline; }
   </style>
+  <link rel="stylesheet" href="polish.css" />
+  <script defer src="ui.js"></script>
 </head>
 <body>
-  <nav class="navbar">
+  <a class="skip-link" href="#mainContent">Lewati ke konten utama</a>
+  <nav aria-label="Navigasi utama" class="navbar">
     <div class="nav-inner">
       <a href="index.html" class="logo">
         <span class="logo-icon">◈</span>
@@ -92,7 +95,7 @@
     </div>
   </nav>
 
-  <div class="auth-wrap">
+  <main class="auth-wrap" id="mainContent" tabindex="-1">
     <div class="auth-card">
       <div class="auth-logo">
         <span class="logo-icon">◈</span>
@@ -101,22 +104,18 @@
       <h1>Selamat Datang</h1>
       <p>Masuk untuk melanjutkan perjalanan belajar bermakna Anda.</p>
 
-      <div class="role-tabs">
-        <button type="button" class="role-tab active" onclick="setRole('guru', this)">🧑‍🏫 Guru</button>
-        <button type="button" class="role-tab" onclick="setRole('siswa', this)">👩‍🎓 Siswa</button>
-      </div>
+      <p>Ruang guru atau siswa dibuka sesuai peran akun Anda.</p>
 
+      <p id="authStatus" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
       <form id="loginForm">
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="nama@sekolah.sch.id" required />
+          <input autocomplete="username" type="email" id="email" placeholder="nama@sekolah.sch.id" required />
         </div>
         <div class="form-group">
           <label for="password">Kata Sandi</label>
-          <input type="password" id="password" placeholder="Masukkan kata sandi" required />
-          <div class="forgot" style="margin-top:6px">
-            <a href="#">Lupa kata sandi?</a>
-          </div>
+          <input autocomplete="current-password" type="password" id="password" placeholder="Masukkan kata sandi" required />
+          <p class="field-hint">Lupa kata sandi? Hubungi pengelola pilot.</p>
         </div>
         <button type="submit" class="auth-submit">Masuk</button>
       </form>
@@ -125,17 +124,9 @@
         Belum punya akun? <a href="register.html">Daftar gratis</a>
       </div>
     </div>
-  </div>
+  </main>
 
-  <script>
-    function setRole(role, btn) {
-      document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      // Catatan opsional: Jika di app.js login Anda membutuhkan pembedaan peran, 
-      // Anda bisa menambahkan input hidden seperti di register.html
-    }
 
-  </script>
 
   <script src="config.js"></script>
   <script src="app.js"></script>
