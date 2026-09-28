@@ -106,7 +106,7 @@
     .perhatian-list { margin-top:16px; }
     .perhatian-item { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:var(--radius-sm); background:var(--cream); margin-bottom:6px; font-size:0.85rem; }
     .perhatian-item .nama { font-weight:600; color:var(--forest); }
-    .perhatian-item .skor { font-weight:700; padding:2px 10px; border-radius:50px; background:#FBE3DA; color:#B14A1E; font-size:0.8rem; }
+    .perhatian-item .skor { font-weight:700; padding:2px 10px; border-radius:50px; background:#FBE3DA; color:#853515; font-size:0.8rem; }
 
     .ai-alert { display:none; gap:12px; background:var(--white); border-left:4px solid var(--gold); border-radius:8px; padding:14px 18px; margin-bottom:22px; box-shadow:var(--shadow); white-space:pre-wrap; }
     .ai-alert strong { color:var(--forest); display:block; font-size:0.82rem; margin-bottom:2px; }
@@ -352,7 +352,7 @@
       }
       document.getElementById('sapaanGuru').textContent = `Halo, ${user.nama.split(' ')[0]} 👋`;
 
-      let currentSort = { key: 'skor_akhir', dir: 'desc' };
+      let currentSort = { key: 'skor_akhir', dir: 'asc' };
       let currentData = [];
       let kelasAktifId = null;
       let aktivitasAktifId = null;
@@ -993,8 +993,12 @@ ${data.pertanyaan_kesimpulan}`;
       function renderTable() {
         const rows = [...currentData].sort((a, b) => {
           if (currentSort.key === 'nama_siswa') return (currentSort.dir === 'asc' ? 1 : -1) * String(a.nama_siswa).localeCompare(String(b.nama_siswa), 'id');
-          const va = a[currentSort.key] == null ? -1 : Number(a[currentSort.key]);
-          const vb = b[currentSort.key] == null ? -1 : Number(b[currentSort.key]);
+          // Skor yang belum lengkap tetap terlihat, tetapi tidak menggeser
+          // siswa berskor rendah dari bagian atas daftar prioritas.
+          if (a[currentSort.key] == null && b[currentSort.key] != null) return 1;
+          if (b[currentSort.key] == null && a[currentSort.key] != null) return -1;
+          const va = a[currentSort.key] == null ? 0 : Number(a[currentSort.key]);
+          const vb = b[currentSort.key] == null ? 0 : Number(b[currentSort.key]);
           return currentSort.dir === 'asc' ? va - vb : vb - va;
         });
 
@@ -1137,7 +1141,7 @@ ${data.pertanyaan_kesimpulan}`;
         const xFor = (i) => n <= 1 ? padL + innerW / 2 : padL + (i / (n - 1)) * innerW;
         const yFor = (v) => padT + innerH - (Math.max(0, Math.min(100, v)) / 100) * innerH;
 
-        let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
+        let svg = `<svg aria-hidden="true" focusable="false" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
 
         // Garis grid horizontal (0/25/50/75/100)
         [0, 25, 50, 75, 100].forEach((v) => {
@@ -1170,6 +1174,16 @@ ${data.pertanyaan_kesimpulan}`;
         return svg;
       }
 
+      function renderDataTren(trenRows) {
+        const headers = DIMENSI_TREN.map(dim => `<th scope="col">${dim.label}</th>`).join('');
+        const rows = trenRows.map(row => {
+          const cells = DIMENSI_TREN.map(dim => `<td>${row[dim.key] == null ? 'Belum tersedia' : Number(row[dim.key]).toFixed(1)}</td>`).join('');
+          const status = row.class_status === 'REPRESENTATIVE' ? 'Memadai' : 'Di bawah 70%';
+          return `<tr><th scope="row">${formatTanggalMinggu(row.minggu)}</th><td>${status} (${Number(row.jumlah_siswa)}/${Number(row.enrolled_students)})</td>${cells}</tr>`;
+        }).join('');
+        return `<details class="tren-data"><summary>Lihat data tren dalam tabel</summary><div class="table-scroll" role="region" tabindex="0" aria-label="Data tren MLI mingguan, geser untuk kolom lain"><table><caption>Tren MLI mingguan per dimensi, skala 0–100</caption><thead><tr><th scope="col">Minggu</th><th scope="col">Cakupan</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+      }
+
       async function muatTren(kelasId) {
         const area = document.getElementById('trenArea');
         area.innerHTML = '<div class="loading-state"><span class="ic">⏳</span>Memuat tren...</div>';
@@ -1181,13 +1195,9 @@ ${data.pertanyaan_kesimpulan}`;
             MeaningEduUI.showError(area, data.message || 'Gagal memuat tren.', () => muatTren(kelasId));
             return;
           }
-          if (!data.tren_mingguan || data.tren_mingguan.length === 0) {
-            area.innerHTML = '<div class="tren-empty"><span class="ic">📭</span>Belum cukup data jurnal untuk menampilkan tren pada kelas ini.</div>';
-            return;
-          }
-
-          const validWeeks = data.tren_mingguan.filter(r => r.class_status === 'REPRESENTATIVE');
-          const insufficient = data.tren_mingguan.filter(r => r.class_status !== 'REPRESENTATIVE');
+          const trenRows = data.tren_mingguan || [];
+          const validWeeks = trenRows.filter(r => r.class_status === 'REPRESENTATIVE');
+          const insufficient = trenRows.filter(r => r.class_status !== 'REPRESENTATIVE');
           const coverageNote = insufficient.length
             ? `<p>${insufficient.map(r => `${formatTanggalMinggu(r.minggu)}: ${r.jumlah_siswa}/${r.enrolled_students} siswa lengkap (${(r.coverage_ratio * 100).toFixed(0)}%)`).join('; ')} — di bawah batas 70%, tanpa skor kelas.</p>` : '';
           let legend = '<div class="tren-legend">' + DIMENSI_TREN.map(d =>
@@ -1196,13 +1206,13 @@ ${data.pertanyaan_kesimpulan}`;
 
           let perhatianHtml = '';
           if (data.siswa_perlu_perhatian && data.siswa_perlu_perhatian.length > 0) {
-            perhatianHtml = '<div class="perhatian-list"><strong style="font-size:0.8rem; color:var(--forest);">⚠️ Siswa Perlu Perhatian (rata-rata terendah periode ini)</strong>' +
+            perhatianHtml = '<section class="perhatian-list" aria-labelledby="perhatianHeading"><h3 id="perhatianHeading">Siswa yang perlu diperhatikan</h3><p>Rata-rata MLI terendah pada periode ini. Periksa jurnal dan cakupan data sebelum menentukan tindak lanjut.</p>' +
               data.siswa_perlu_perhatian.map(s =>
                 `<div class="perhatian-item"><span class="nama">${escapeHtml(s.nama_siswa)}</span><span class="skor">${Number(s.skor_rata_rata).toFixed(1)}</span></div>`
-              ).join('') + '</div>';
+              ).join('') + '</section>';
           }
 
-          area.innerHTML = `${validWeeks.length ? `<div class="tren-svg-wrap">${renderTrenChart(data.tren_mingguan)}</div>${legend}` : '<p>Belum ada minggu dengan cakupan MLI v2 yang memadai.</p>'}${coverageNote}`;
+          area.innerHTML = `${perhatianHtml}${validWeeks.length ? `<div class="tren-svg-wrap">${renderTrenChart(trenRows)}</div>${legend}` : '<p>Belum ada minggu dengan cakupan MLI v2 yang memadai.</p>'}${coverageNote}${trenRows.length ? renderDataTren(trenRows) : '<p>Belum ada jurnal pada periode ini.</p>'}`;
         } catch (err) {
           console.error(err);
           MeaningEduUI.showError(area, 'Gagal memuat data. Periksa koneksi, lalu coba lagi.', () => muatTren(kelasId));

@@ -116,6 +116,95 @@ test('expanded teacher forms, keyboard sorting, and text zoom remain usable', as
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
+test('teacher triage shows priority pupils and accessible weekly data', async ({page}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  await page.route('**/mli/tren/*', route => route.fulfill({json: {
+    tren_mingguan: [{minggu:'2026-09-21',class_status:'REPRESENTATIVE',jumlah_siswa:2,enrolled_students:2,coverage_ratio:1,
+      relevansi_kontekstual:61,otonomi:74,persepsi_kompetensi:68,keterlibatan_kognitif:59,refleksi_metakognitif:70}],
+    siswa_perlu_perhatian:[{nama_siswa:'Siswa Prioritas',skor_rata_rata:42.5}]
+  }}));
+  await page.route('**/mli/dashboard/*', route => route.fulfill({json: {
+    rata_rata_kelas:70,coverage:{complete_students:2,enrolled_students:2,ratio:1},
+    detail_siswa:[{nama_siswa:'Skor Tinggi',skor_akhir:85},{nama_siswa:'Skor Rendah',skor_akhir:42}]
+  }}));
+  await page.goto('/dashboard-guru.html');
+  await expect(page.locator('#perhatianHeading')).toBeVisible();
+  await expect(page.locator('.perhatian-item')).toContainText('Siswa Prioritas');
+  const rows = page.locator('#tableHolder .mli-table tbody tr');
+  await expect(rows.first()).toContainText('Skor Rendah');
+  await page.getByText('Lihat data tren dalam tabel').click();
+  await expect(page.locator('.tren-data table')).toContainText('Relevansi');
+  await expect(page.locator('.tren-data table')).toContainText('61.0');
+  const result = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
+  expect(result.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))).toEqual([]);
+});
+
+test('student reflection restores each saved stage and survey after reload', async ({page}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  await loginFixture(page, 'siswa');
+  await page.route('**/ai/socratic', route => route.fulfill({json:{pertanyaan_ai:'Apa yang kamu amati?'}}));
+  await page.route('**/ai/metakognisi-scaffold', route => route.fulfill({json:{
+    pertanyaan_kesenjangan:'Apa yang belum kamu pahami?',pertanyaan_strategi:'Apa rencanamu?'
+  }}));
+  await page.goto('/workspace-siswa.html');
+  await expect(page.locator('#jurnalUnlocked')).toBeVisible();
+  await page.locator('#jawabanAwal').fill('Energi berpindah.');
+  await page.reload();
+  await expect(page.locator('#jawabanAwal')).toHaveValue('Energi berpindah.');
+  await expect(page.locator('#draftStatus')).toContainText('dipulihkan');
+  await page.locator('#btnKirimAwal').click();
+  await expect(page.locator('#tahap-2')).toBeVisible();
+  await page.locator('#jawabanLanjutan').fill('Saya menghubungkan dua pengamatan.');
+  await page.reload();
+  await expect(page.locator('#tahap-2')).toBeVisible();
+  await expect(page.locator('#teksPertanyaanAI')).toHaveText('Apa yang kamu amati?');
+  await expect(page.locator('#jawabanLanjutan')).toHaveValue('Saya menghubungkan dua pengamatan.');
+  await page.locator('#btnLanjutTahap3').click();
+  await expect(page.locator('#tahap-3')).toBeVisible();
+  await page.locator('#jawabanKesenjangan').fill('Data kedua belum jelas.');
+  await page.locator('#jawabanStrategi').fill('Ulangi pengamatan.');
+  await page.locator('#mliA1').selectOption('4');
+  await page.reload();
+  await expect(page.locator('#tahap-3')).toBeVisible();
+  await expect(page.locator('#jawabanKesenjangan')).toHaveValue('Data kedua belum jelas.');
+  await expect(page.locator('#jawabanStrategi')).toHaveValue('Ulangi pengamatan.');
+  await expect(page.locator('#mliA1')).toHaveValue('4');
+});
+
+test('manifest icons resolve and are cached by the real service worker', async ({browser}) => {
+  const express = require('express');
+  const path = require('node:path');
+  const app = express();
+  app.get('/config.js', (_, res) => res.type('js').send("self.MEANINGEDU_CONFIG=Object.freeze({API_BASE_URL:'http://127.0.0.1:4173'});"));
+  app.use(express.static(path.resolve(__dirname, '../../..')));
+  const server = await new Promise(resolve => {
+    const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
+  });
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const context = await browser.newContext({serviceWorkers:'allow'});
+  const page = await context.newPage();
+  try {
+  const manifest = await (await page.request.get(`${origin}/manifest.json`)).json();
+  for (const icon of manifest.icons) {
+    const res = await page.request.get(`${origin}/${icon.src}`);
+    expect(res.ok()).toBeTruthy();
+    expect(res.headers()['content-type']).toContain('image/png');
+    expect((await res.body()).subarray(1,4).toString()).toBe('PNG');
+  }
+  await page.goto(`${origin}/index.html`);
+  await expect.poll(() => page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    const cached = await caches.match('/icons/icon-192.png');
+    return Boolean(cached);
+  })).toBe(true);
+  } finally {
+    await context.close();
+    await new Promise(resolve => server.close(resolve));
+  }
+});
+
 test('expired session redirects, and malformed local account data cannot crash the page',async({page})=>{
   await loginFixture(page);
   await page.route('**/kelas',r=>r.fulfill({status:401,json:{message:'Sesi habis'}}));

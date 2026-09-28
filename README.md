@@ -180,6 +180,8 @@ TEST_DATABASE_URL="postgresql://..." npm run test:e2e
 
 `npm run test:e2e` menjalankan Chromium terhadap frontend dan Express API nyata dengan PostgreSQL test. Integrasi Gemini dan Private Blob diganti stub deterministik khusus test; route aplikasi, JWT, ownership/enrollment, penulisan metadata, dan rendering browser tetap menggunakan implementasi production. Skenario membuktikan output rumus AI dirender KaTeX tanpa delimiter mentah, upload PDF mencapai `/pdf/complete`, siswa enrolled dapat membuka PDF, dan siswa non-enrolled menerima `403`.
 
+Regresi pilot memeriksa triage siswa dari skor MLI rendah, tabel data tren yang dapat dibuka, pemulihan draf refleksi setiap tahap setelah reload, ikon manifest/caching service worker, viewport ponsel, aksesibilitas otomatis, dan antrean jurnal offline satu kali. Draf lokal dipisah berdasarkan akun dan aktivitas; membersihkan data situs akan menghapus draf. Font OpenDyslexic masih memakai CDN pada rilis ini, sehingga tombol font khusus memerlukan jaringan saat pertama kali digunakan.
+
 Workflow `.github/workflows/ci.yml` menjalankan `npm ci`, unit/integration test dengan service PostgreSQL 16, dependency audit, browser E2E Chromium, dan Gitleaks pada setiap pull request serta push ke branch utama/stabilisasi. Artifact laporan Playwright disimpan selama 14 hari.
 
 ## Deployment
@@ -199,6 +201,8 @@ Urutan rilis aman:
 6. smoke-test registrasi siswa, permohonan guru, approval admin, jurnal online/offline, rumus, dan PDF lintas peran.
 
 Jangan commit `.env`, token Blob, connection string database, JWT secret, atau API key.
+
+Sebelum pilot, isi [informasi peserta dan consent](docs/PILOT_PARTICIPANT_INFO.md) dan tuntaskan gate perangkat nyata, pembaca layar, Web Vitals pada deployment, serta rehearsal provider sesuai [runbook](docs/PILOT_RUNBOOK.md). Hasil CI memakai double AI/Blob dan tidak dapat menggantikan pemeriksaan provider produksi.
 # MeaningEdu 03 (MVP)
 
 Jalankan `cd backend && npm run migrate` untuk menambahkan tabel `teacher_reflections`,

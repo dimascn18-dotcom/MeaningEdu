@@ -228,13 +228,6 @@
       <div id="materiContent" tabindex="-1">Pilih aktivitas di atas untuk mulai belajar.</div>
     </div>
 
-<div class="panel" id="materiSiswaPanel" style="display:none;">
-  <h2>Materi pendukung kelas</h2>
-  <p class="empty-hint" style="margin-top:-8px; margin-bottom:12px;">Bacaan dan tautan tambahan dari guru. PDF dibuka di tab baru dan memerlukan internet.</p>
-  <div class="materi-siswa-list" id="daftarMateriSiswa">
-    <div class="empty-hint">Memuat materi...</div>
-  </div>
-</div>
     <!-- JURNAL REFLEKSI -->
     <div id="reflection-box" class="journal-card">
       <div class="journal-head">
@@ -248,6 +241,7 @@
       </div>
 
       <div id="jurnalUnlocked" style="display:none;">
+       <p id="draftStatus" role="status" class="empty-hint"></p>
        <div class="step-track">
           <div class="step-dot active" id="stepDot1">1</div>
           <div class="step-line"></div>
@@ -299,6 +293,13 @@
 
           <button id="btnSimpanJurnal">Simpan Jurnal Akhir</button>
         </div>
+      </div>
+    </div>
+    <div class="panel" id="materiSiswaPanel" style="display:none;">
+      <h2>Materi tambahan dari guru</h2>
+      <p class="empty-hint">Bacaan dan tautan pendukung setelah refleksi. PDF dibuka di tab baru dan memerlukan internet.</p>
+      <div class="materi-siswa-list" id="daftarMateriSiswa">
+        <div class="empty-hint">Memuat materi...</div>
       </div>
     </div>
   </main>
@@ -695,6 +696,60 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
     document.getElementById('btnFontKecil').addEventListener('click', () => { ukuranFont = Math.max(0, ukuranFont - 1); terapkanUkuranFont(); });
 
     // ================= 6. JURNAL REFLEKSI (dinamis, tidak hardcode lagi) =================
+    const DRAFT_FIELDS = ['jawabanAwal', 'jawabanLanjutan', 'jawabanKesenjangan', 'jawabanStrategi', 'mliA1', 'mliA2', 'mliC1', 'mliC2'];
+    const draftKey = activityId => `meaningedu:jurnal-draft:v1:${user.id}:${activityId}`;
+    let dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '' };
+    let draftStage = 1;
+
+    function simpanDraft() {
+      if (!aktivitasTerpilih) return;
+      const fields = Object.fromEntries(DRAFT_FIELDS.map(id => [id, document.getElementById(id).value]));
+      try {
+        localStorage.setItem(draftKey(aktivitasTerpilih.id), JSON.stringify({
+          fields, stage: draftStage, sementara: dataJurnalSementara,
+          pertanyaanKesenjangan: document.getElementById('labelKesenjangan').textContent,
+          pertanyaanStrategi: document.getElementById('labelStrategi').textContent,
+          updatedAt: Date.now()
+        }));
+        document.getElementById('draftStatus').textContent = 'Draf tersimpan di perangkat ini. Gunakan akun yang sama untuk melanjutkan.';
+      } catch (err) {
+        document.getElementById('draftStatus').textContent = 'Penyimpanan perangkat penuh atau tidak tersedia. Salin jawabanmu sebelum menutup halaman.';
+      }
+    }
+
+    function hapusDraft(activityId) {
+      try { localStorage.removeItem(draftKey(activityId)); } catch (err) { /* penyimpanan dinonaktifkan */ }
+    }
+
+    function pulihkanDraft(akt) {
+      let draft;
+      try { draft = JSON.parse(localStorage.getItem(draftKey(akt.id)) || 'null'); } catch (err) { return; }
+      if (!draft || !draft.fields || typeof draft.fields !== 'object') return;
+      DRAFT_FIELDS.forEach(id => {
+        if (typeof draft.fields[id] === 'string') document.getElementById(id).value = draft.fields[id];
+      });
+      dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '', ...draft.sementara };
+      draftStage = [2, 3].includes(draft.stage) && dataJurnalSementara.pertanyaan_ai ? draft.stage : 1;
+      if (draftStage >= 2) {
+        document.getElementById('tahap-1').style.display = 'none';
+        document.getElementById('tahap-2').style.display = draftStage === 2 ? 'block' : 'none';
+        document.getElementById('teksPertanyaanAI').textContent = dataJurnalSementara.pertanyaan_ai;
+        document.getElementById('stepDot2').classList.add('active');
+      }
+      if (draftStage === 3) {
+        document.getElementById('tahap-3').style.display = 'block';
+        document.getElementById('labelKesenjangan').textContent = draft.pertanyaanKesenjangan || 'Bagian mana yang masih membingungkanmu?';
+        document.getElementById('labelStrategi').textContent = draft.pertanyaanStrategi || 'Apa langkahmu selanjutnya?';
+        document.getElementById('stepDot3').classList.add('active');
+      }
+      document.getElementById('draftStatus').textContent = 'Draf jawaban sebelumnya dipulihkan dari perangkat ini.';
+    }
+
+    DRAFT_FIELDS.forEach(id => {
+      const control = document.getElementById(id);
+      control.addEventListener(control.tagName === 'SELECT' ? 'change' : 'input', simpanDraft);
+    });
+
     function bukaJurnal(akt) {
       document.getElementById('jurnalLocked').style.display = 'none';
       document.getElementById('jurnalUnlocked').style.display = 'block';
@@ -707,11 +762,14 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       document.getElementById('jawabanLanjutan').value = '';
       document.getElementById('jawabanKesenjangan').value = '';
       document.getElementById('jawabanStrategi').value = '';
+      for (const id of ['mliA1', 'mliA2', 'mliC1', 'mliC2']) document.getElementById(id).value = '';
       document.getElementById('stepDot2').classList.remove('active');
       document.getElementById('stepDot3').classList.remove('active');
+      document.getElementById('draftStatus').textContent = '';
+      dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '' };
+      draftStage = 1;
+      pulihkanDraft(akt);
     }
-
-    let dataJurnalSementara = { jawaban_awal: '', pertanyaan_ai: '', jawaban_lanjutan: '' };
 
     document.getElementById('btnKirimAwal').addEventListener('click', async () => {
       if (!aktivitasTerpilih) { alert('Pilih aktivitas terlebih dahulu.'); return; }
@@ -740,6 +798,8 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           document.getElementById('tahap-2').style.display = 'block';
           document.getElementById('teksPertanyaanAI').textContent = data.pertanyaan_ai;
           document.getElementById('stepDot2').classList.add('active');
+          draftStage = 2;
+          simpanDraft();
           document.getElementById('jawabanLanjutan').focus();
         } else {
           alert('Gagal memuat AI: ' + data.message);
@@ -828,7 +888,9 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
 
     async function antrekanJurnal(payload) {
       await simpanKeIndexedDB(payload);
-      await jadwalkanSinkronisasiJurnal();
+      // Antrean sudah aman meskipun pendaftaran Background Sync gagal.
+      // Percobaan sinkronisasi berikutnya terjadi saat online atau membuka ulang.
+      jadwalkanSinkronisasiJurnal().catch(console.error);
     }
 
     async function kirimJurnalKeServer(payload) {
@@ -848,6 +910,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       });
       if (!response) return; // sesi habis, fetchWithAuth sudah redirect ke login
       if (response.ok) {
+        hapusDraft(payload.aktivitas_id);
         alert('Hebat! Jurnal refleksimu berhasil disimpan.');
         window.location.reload();
         return;
@@ -884,6 +947,8 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           document.getElementById('tahap-2').style.display = 'none';
           document.getElementById('tahap-3').style.display = 'block';
           document.getElementById('stepDot3').classList.add('active');
+          draftStage = 3;
+          simpanDraft();
           document.getElementById('jawabanKesenjangan').focus();
         } else {
           alert('Gagal memuat pertanyaan refleksi akhir: ' + data.message);
@@ -929,6 +994,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       try {
         if (!navigator.onLine) {
           await antrekanJurnal(payload);
+          hapusDraft(payload.aktivitas_id);
           alert('Anda sedang offline. Jurnal disimpan secara luring dan akan otomatis terkirim saat sinyal kembali! 📡');
           window.location.reload();
         } else {
@@ -938,6 +1004,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
         console.error('Gagal simpan:', err);
         if (err instanceof TypeError || err.retryable) {
           await antrekanJurnal(payload);
+          hapusDraft(payload.aktivitas_id);
           alert('Koneksi/server belum tersedia. Jurnal aman disimpan di perangkat dan akan dikirim ulang otomatis.');
           window.location.reload();
         } else {

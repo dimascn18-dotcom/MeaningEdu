@@ -34,7 +34,11 @@ test('real service worker keeps shell offline, queues a journal, then syncs once
     await page.locator('#jawabanStrategi').fill('Saya akan mengulang pengamatan.');
     await context.setOffline(true);
     await expect(page.locator('.connection-status')).toContainText('Luring');
-    await page.locator('#btnSimpanJurnal').click();
+    await Promise.all([
+      page.waitForEvent('framenavigated'),
+      page.locator('#btnSimpanJurnal').click()
+    ]);
+    await page.waitForLoadState('domcontentloaded');
     const count=()=>page.evaluate(()=>new Promise((resolve,reject)=>{const req=indexedDB.open('MeaningEduDB',1);req.onsuccess=()=>{const q=req.result.transaction('jurnalOffline').objectStore('jurnalOffline').count();q.onsuccess=()=>{resolve(q.result);req.result.close();};q.onerror=()=>reject(q.error);};}));
     await expect.poll(count).toBe(1);
     await page.reload();
