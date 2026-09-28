@@ -1,6 +1,7 @@
 # Audit generasi AI MeaningEdu 1.0
 
-Tanggal: 28 September 2026  
+Tanggal: 28 September 2026
+
 Ruang lingkup: keluaran AI untuk siswa dan guru pada simulasi pilot internal.
 
 ## Hasil yang sudah diverifikasi
