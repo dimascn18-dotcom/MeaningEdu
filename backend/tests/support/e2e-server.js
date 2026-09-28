@@ -88,6 +88,8 @@ async function resetFixture({ enrolled = true } = {}) {
     INSERT INTO kelas (id, guru_id, nama_kelas, topik_fisika, kode_kelas)
     VALUES (1, 1, 'Fisika E2E', 'Energi', 'E2E00001');
   `);
+  // Explicit fixture IDs do not advance the users serial sequence.
+  await pool.query("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
   if (enrolled) await pool.query('INSERT INTO kelas_siswa (kelas_id, siswa_id) VALUES (1, 2)');
 }
 

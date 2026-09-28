@@ -329,7 +329,10 @@
     const feedback = (id, message, kind) => MeaningEduUI.notice(document.getElementById(id), message, kind);
     const flashKey = `meaningedu-journal-result-${user.id}`;
     const flash = sessionStorage.getItem(flashKey);
-    if (flash) { feedback('workspaceStatus', flash, 'success'); sessionStorage.removeItem(flashKey); }
+    if (flash) document.addEventListener('DOMContentLoaded', () => {
+      feedback('workspaceStatus', flash, 'success');
+      sessionStorage.removeItem(flashKey);
+    }, { once: true });
     function reloadWithJournalStatus(message) {
       sessionStorage.setItem(flashKey, message);
       window.location.reload();
