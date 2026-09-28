@@ -66,9 +66,12 @@
     .auth-footer a:hover { text-decoration: underline; }
     @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
   </style>
+  <link rel="stylesheet" href="polish.css" />
+  <script defer src="ui.js"></script>
 </head>
 <body>
-  <nav class="navbar">
+  <a class="skip-link" href="#mainContent">Lewati ke konten utama</a>
+  <nav aria-label="Navigasi utama" class="navbar">
     <div class="nav-inner">
       <a href="index.html" class="logo">
         <span class="logo-icon">◈</span>
@@ -77,40 +80,38 @@
     </div>
   </nav>
 
-  <div class="auth-wrap">
+  <main class="auth-wrap" id="mainContent" tabindex="-1">
     <div class="auth-card">
       <div class="auth-logo">
         <span class="logo-icon">◈</span>
         MeaningEdu
       </div>
       <h1>Buat Akun Baru</h1>
-      <p>Gratis selamanya. Tidak perlu kartu kredit.</p>
+      <p>Daftar untuk mengikuti pilot pembelajaran MeaningEdu.</p>
 
       <div class="role-tabs">
-        <button type="button" class="role-tab active" onclick="setRole('guru', this)">🧑‍🏫 Saya Guru</button>
-        <button type="button" class="role-tab" onclick="setRole('siswa', this)">👩‍🎓 Saya Siswa</button>
+        <button type="button" class="role-tab active" aria-pressed="true" onclick="setRole('guru', this)">🧑‍🏫 Saya Guru</button>
+        <button type="button" class="role-tab" aria-pressed="false" onclick="setRole('siswa', this)">👩‍🎓 Saya Siswa</button>
       </div>
       <p class="terms-note" style="margin-top:-18px; margin-bottom:18px;">Pendaftaran guru harus disetujui admin sebelum akun dapat digunakan.</p>
+      <p id="authStatus" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
       <form id="registerForm">
         <input type="hidden" id="peran" value="guru" />
         <div class="form-row">
           <div class="form-group">
           <label for="nama">Nama Lengkap</label>
-          <input type="text" id="nama" placeholder="Budi Santoso" required />
+          <input autocomplete="name" type="text" id="nama" placeholder="Budi Santoso" required />
         </div>
         
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="nama@sekolah.sch.id" required />
+          <input autocomplete="username" type="email" id="email" placeholder="nama@sekolah.sch.id" required />
         </div>
         
-        <div class="form-group">
-          <label for="school">Nama Sekolah</label>
-          <input type="text" id="school" placeholder="SMA Negeri 1 ..." required />
-        </div>
+
         
         <div class="form-group">
-          <label for="region">Wilayah Sekolah</label>
+          <label for="wilayah">Wilayah Sekolah</label>
           <select id="wilayah" required>
             <option value="">-- Pilih Wilayah --</option>
             <option value="Perkotaan / Peri-urban">Perkotaan / Peri-urban</option>
@@ -124,23 +125,24 @@
 
         <div class="form-group">
           <label for="password">Kata Sandi</label>
-          <input type="password" id="password" placeholder="Minimal 8 karakter" minlength="8" required />
+          <input autocomplete="new-password" type="password" id="password" placeholder="Minimal 8 karakter" minlength="8" required />
+        </div>
         </div>
         <button type="submit" class="auth-submit">Buat Akun — Gratis</button>
-        <p class="terms-note">Dengan mendaftar, Anda menyetujui Kebijakan Privasi MeaningEdu. Data Anda tidak akan dijual atau dibagikan ke pihak ketiga.</p>
+        <p class="terms-note">Data akun dan refleksi digunakan untuk pembelajaran. Teks yang dianalisis AI dikirim ke penyedia AI. Hindari menulis data sensitif. Baca <a href="index.html#privasi">catatan privasi pilot</a>.</p>
       </form>
 
       <div class="auth-footer">
         Sudah punya akun? <a href="login.html">Masuk di sini</a>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     function setRole(role, btn) {
       // Ubah tampilan tombol
-      document.querySelectorAll('.role-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      document.querySelectorAll('.role-tab').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
       // Simpan nilai peran ke hidden input
       document.getElementById('peran').value = role; 
     }

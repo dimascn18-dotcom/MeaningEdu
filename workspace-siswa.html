@@ -145,10 +145,13 @@
     .empty-hint { color:var(--text-lt); font-size:0.88rem; padding:8px 0; }
     .locked-notice { background:var(--cream); border:1px dashed var(--cream-dk); border-radius:var(--radius-sm); padding:16px; text-align:center; color:var(--text-lt); font-size:0.88rem; }
   </style>
+  <link rel="stylesheet" href="polish.css" />
+  <script defer src="ui.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Lewati ke konten utama</a>
 
-  <nav class="navbar scrolled">
+  <nav aria-label="Navigasi utama" class="navbar scrolled">
     <div class="nav-inner">
       <a href="workspace-siswa.html" class="logo">
         <span class="logo-icon">◈</span>
@@ -158,53 +161,41 @@
     </div>
   </nav>
 
-  <main class="ws-shell">
+  <main id="mainContent" tabindex="-1" class="ws-shell">
     <div class="ws-greeting">
       <div>
         <h1 id="sapaanNama">Halo! 👋</h1>
         <p>Yuk lanjutkan perjalanan belajar bermaknamu hari ini.</p>
       </div>
-      <div class="ws-streak">🔥 <span id="streakCount">Mulai hari ini</span></div>
+      <div class="ws-streak"><span id="streakCount">Belajar sesuai ritmemu</span></div>
     </div>
 
     <!-- INCLUSIVITY TOOLBAR -->
-    <div class="incl-toolbar">
-      <button class="incl-btn" id="btnTTS" title="Dengarkan materi yang sedang dibuka">🔊 Dengarkan Materi</button>
-      <button class="incl-btn" id="btnDisleksia" title="Ganti font agar lebih mudah dibaca">🔤 Font Disleksia</button>
-      <button class="incl-btn" id="btnFontKecil">A-</button>
-      <button class="incl-btn" id="btnFontBesar">A+</button>
-    </div>
 
-    <div class="ws-dims">
-      <div class="ws-dim"><div class="icon">🧭</div><div class="label">Relevansi</div></div>
-      <div class="ws-dim"><div class="icon">🕊️</div><div class="label">Otonomi</div></div>
-      <div class="ws-dim"><div class="icon">💪</div><div class="label">Kompetensi</div></div>
-      <div class="ws-dim"><div class="icon">💬</div><div class="label">Keterlibatan</div></div>
-      <div class="ws-dim"><div class="icon">🪞</div><div class="label">Refleksi</div></div>
-    </div>
 
+
+
+    <nav class="workspace-steps" aria-label="Alur belajar">
+      <a href="#aktivitasPanel">1. Aktivitas</a><a href="#jalurTabsContainer">2. Pilihan jalur</a>
+      <a href="#materiContent">3. Belajar</a><a href="#reflection-box">4. Refleksi</a>
+    </nav>
     <!-- PANEL KELAS -->
     <div class="panel" id="kelasPanel">
       <h3>Kelas Saya</h3>
       <div id="kelasContent">
         <div class="kelas-form">
-          <input type="text" id="inputKodeKelas" placeholder="Masukkan Kode Kelas dari gurumu (mis: 1)" />
+          <label for="inputKodeKelas">Kode kelas</label>
+          <input type="text" id="inputKodeKelas" placeholder="Masukkan kode dari guru" />
           <button id="btnJoinKelas">Gabung Kelas</button>
         </div>
         <p class="empty-hint">Kode Kelas didapat dari gurumu. Ini menghubungkanmu ke daftar aktivitas belajar kelas tersebut.</p>
       </div>
     </div>
 <!-- PANEL MATERI PEMBELAJARAN (Gap #2) -->
-<div class="panel" id="materiSiswaPanel" style="display:none;">
-  <h3>📚 Materi Pembelajaran Kelas</h3>
-  <p class="empty-hint" style="margin-top:-8px; margin-bottom:12px;">Tiap materi diberi label topik dan dimensi Meaningful Learning Index (MLI) yang sedang kamu latih.</p>
-  <div class="materi-siswa-list" id="daftarMateriSiswa">
-    <div class="empty-hint">Memuat materi...</div>
-  </div>
-</div>
+
     <!-- PANEL AKTIVITAS (Autonomous Learning Path dimulai di sini) -->
     <div class="panel" id="aktivitasPanel" style="display:none;">
-      <h3>Pilih Aktivitas Belajar</h3>
+      <h2>1. Pilih aktivitas belajar</h2>
       <div class="aktivitas-row" id="daftarAktivitas">
         <div class="empty-hint">Memuat aktivitas...</div>
       </div>
@@ -217,23 +208,38 @@
         <span class="materi-badge" id="materiTemplate">Template</span>
       </div>
 
-      <div class="jalur-tabs" id="jalurTabsContainer">
+      <h2>2. Pilih jalurmu</h2><p>Jalur pertama ditampilkan sebagai pratinjau. Klik jalur untuk mencatat pilihanmu; kamu boleh menggantinya.</p>
+      <div class="jalur-tabs" id="jalurTabsContainer" role="group" aria-label="Pilihan jalur belajar">
         <!-- Tab jalur belajar diisi otomatis lewat JS berdasarkan data dari server -->
       </div>
       <div id="pathRecommendation" role="status" style="display:none; padding:12px; margin-bottom:12px; border:1px solid var(--sage); border-radius:8px;"></div>
 
+<div class="incl-toolbar">
+      <button class="incl-btn" id="btnTTS" title="Dengarkan materi yang sedang dibuka">🔊 Dengarkan Materi</button>
+      <button class="incl-btn" id="btnDisleksia" title="Ganti font agar lebih mudah dibaca">🔤 Font Disleksia</button>
+      <button class="incl-btn" id="btnFontKecil" aria-label="Perkecil teks materi">A-</button>
+      <button class="incl-btn" id="btnFontBesar" aria-label="Perbesar teks materi">A+</button>
+    </div>
       <div class="materi-tools">
         <button class="materi-tool-btn" id="btnSimplifier">✨ AI Simplifier: sederhanakan bahasa</button>
       </div>
 
-      <div id="materiContent">Pilih aktivitas di atas untuk mulai belajar.</div>
+      <h2>3. Pelajari materi</h2>
+      <div id="materiContent" tabindex="-1">Pilih aktivitas di atas untuk mulai belajar.</div>
     </div>
 
+<div class="panel" id="materiSiswaPanel" style="display:none;">
+  <h2>Materi pendukung kelas</h2>
+  <p class="empty-hint" style="margin-top:-8px; margin-bottom:12px;">Bacaan dan tautan tambahan dari guru. PDF dibuka di tab baru dan memerlukan internet.</p>
+  <div class="materi-siswa-list" id="daftarMateriSiswa">
+    <div class="empty-hint">Memuat materi...</div>
+  </div>
+</div>
     <!-- JURNAL REFLEKSI -->
     <div id="reflection-box" class="journal-card">
       <div class="journal-head">
         <div class="badge-icon">📓</div>
-        <h3>Jurnal Refleksi Metakognitif</h3>
+        <h2>4. Refleksi belajarmu</h2>
       </div>
       <p class="journal-sub">Ruang ini menyimpan proses berpikirmu — bukan sekadar jawaban benar/salah, tapi bagaimana pemahamanmu berkembang.</p>
 
@@ -251,7 +257,7 @@
         </div>
 
         <div id="tahap-1">
-          <label class="q-label" id="labelJawabanAwal">Apa yang kamu pahami tentang konsep hari ini?</label>
+          <label for="jawabanAwal" class="q-label" id="labelJawabanAwal">Apa yang kamu pahami tentang konsep hari ini?</label>
           <textarea id="jawabanAwal" rows="3" placeholder="Tuliskan pemahamanmu dengan kata-katamu sendiri..."></textarea>
           <button id="btnKirimAwal">Kirim ke AI Companion</button>
         </div>
@@ -265,7 +271,7 @@
             </div>
           </div>
 
-          <label class="q-label">Refleksi Lanjutanmu:</label>
+          <label for="jawabanLanjutan" class="q-label">Refleksi Lanjutanmu:</label>
           <textarea id="jawabanLanjutan" rows="3" placeholder="Hubungkan dengan pertanyaan AI di atas..."></textarea>
           <button id="btnLanjutTahap3">Lanjut ke Refleksi Akhir</button>
         </div>
@@ -279,10 +285,10 @@
             </div>
           </div>
 
-          <label class="q-label" id="labelKesenjangan">Menyiapkan pertanyaan...</label>
+          <label for="jawabanKesenjangan" class="q-label" id="labelKesenjangan">Menyiapkan pertanyaan...</label>
           <textarea id="jawabanKesenjangan" rows="2" placeholder="Tuliskan bagian yang masih kamu bingungkan..."></textarea>
 
-          <label class="q-label" id="labelStrategi" style="margin-top:14px;">Menyiapkan pertanyaan...</label>
+          <label for="jawabanStrategi" class="q-label" id="labelStrategi" style="margin-top:14px;">Menyiapkan pertanyaan...</label>
           <textarea id="jawabanStrategi" rows="2" placeholder="Tuliskan rencana/strategimu..."></textarea>
 
           <p class="q-label">Micro-survey setelah aktivitas (1 = sangat tidak setuju; 5 = sangat setuju). Kosong berarti dimensi terkait belum dapat dihitung.</p>
@@ -324,12 +330,12 @@
     function renderKelasPanel(kelasAktif) {
       const lainnya = daftarKelasSiswa.filter(k => k.id !== kelasAktif.id);
       const listLain = lainnya.length
-        ? `<p class="empty-hint">Kelas lain: ${lainnya.map(k => `<span class="ganti-kelas-link" data-id="${Number(k.id)}">${escapeHtml(k.nama_kelas)}</span>`).join(' &middot; ')}</p>`
+        ? `<p class="empty-hint">Kelas lain: ${lainnya.map(k => `<button type="button" class="ganti-kelas-link" data-id="${Number(k.id)}">${escapeHtml(k.nama_kelas)}</button>`).join(' &middot; ')}</p>`
         : '';
       document.getElementById('kelasContent').innerHTML = `
         <div class="kelas-active-badge">
           <span class="k-nama">📚 ${escapeHtml(kelasAktif.nama_kelas)} aktif</span>
-          <span class="ganti-kelas-link" id="tambahKelasLink">+ Gabung kelas lain</span>
+          <button type="button" class="ganti-kelas-link" id="tambahKelasLink">+ Gabung kelas lain</button>
         </div>
         ${listLain}`;
       document.getElementById('tambahKelasLink').addEventListener('click', renderJoinForm);
@@ -341,6 +347,7 @@
     function renderJoinForm() {
       document.getElementById('kelasContent').innerHTML = `
         <div class="kelas-form">
+          <label for="inputKodeKelas">Kode kelas</label>
           <input type="text" id="inputKodeKelas" placeholder="Masukkan Kode Kelas dari gurumu" />
           <button id="btnJoinKelas">Gabung Kelas</button>
         </div>
@@ -387,7 +394,9 @@
       try {
         const res = await fetchWithAuth('/kelas/siswa');
         const data = await res.json();
-        if (!res.ok || !Array.isArray(data) || data.length === 0) {
+        if (!res.ok) throw new Error(data.message || 'Gagal memuat data. Coba lagi.');
+          if (!Array.isArray(data)) throw new Error('Respons server tidak sesuai. Coba lagi.');
+          if (data.length === 0) {
           localStorage.removeItem('kelasIdAktifSiswa');
           renderJoinForm();
           return;
@@ -401,7 +410,7 @@
          muatMateriSiswa(kelasAktif.id);
       } catch (err) {
         console.error(err);
-        document.getElementById('kelasContent').innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Coba muat ulang halaman.</div>';
+        MeaningEduUI.showError(document.getElementById('kelasContent'), 'Gagal memuat data. Periksa koneksi, lalu coba lagi.', () => initKelas());
       }
     }
 
@@ -410,11 +419,17 @@
       const panel = document.getElementById('aktivitasPanel');
       const wrap = document.getElementById('daftarAktivitas');
       panel.style.display = 'block';
+      aktivitasTerpilih = null;
+      document.getElementById('materiPanel').style.display = 'none';
+      document.getElementById('jurnalUnlocked').style.display = 'none';
+      document.getElementById('jurnalLocked').style.display = 'block';
       wrap.innerHTML = '<div class="empty-hint">Memuat aktivitas...</div>';
       try {
         const res = await fetchWithAuth(`/aktivitas/${kelasId}`);
         const data = await res.json();
-        if (!res.ok || !Array.isArray(data) || data.length === 0) {
+        if (!res.ok) throw new Error(data.message || 'Gagal memuat data. Coba lagi.');
+          if (!Array.isArray(data)) throw new Error('Respons server tidak sesuai. Coba lagi.');
+          if (data.length === 0) {
           wrap.innerHTML = '<div class="empty-hint">📭 Belum ada aktivitas di kelas ini. Tanyakan gurumu kapan aktivitas akan dibuat.</div>';
           return;
         }
@@ -433,7 +448,7 @@
         });
       } catch (err) {
         console.error(err);
-        wrap.innerHTML = '<div class="empty-hint">🔌 Gagal terhubung ke server. Materi tetap bisa dibuka ulang saat online kembali.</div>';
+        MeaningEduUI.showError(wrap, 'Gagal memuat data. Periksa koneksi, lalu coba lagi.', () => muatAktivitas(kelasId));
       }
     }
 // ================= PANEL MATERI PEMBELAJARAN (Gap #2) =================
@@ -450,7 +465,9 @@ async function muatMateriSiswa(kelasId) {
   try {
     const res = await fetchWithAuth(`/materi/${kelasId}`);
     const data = await res.json();
-    if (!res.ok || !Array.isArray(data) || data.length === 0) {
+    if (!res.ok) throw new Error(data.message || 'Gagal memuat data. Coba lagi.');
+          if (!Array.isArray(data)) throw new Error('Respons server tidak sesuai. Coba lagi.');
+          if (data.length === 0) {
       wrap.innerHTML = '<div class="empty-hint">📭 Gurumu belum mengunggah materi tambahan untuk kelas ini.</div>';
       return;
     }
@@ -475,7 +492,7 @@ async function muatMateriSiswa(kelasId) {
     `).join('');
   } catch (err) {
     console.error(err);
-    wrap.innerHTML = '<div class="empty-hint">🔌 Gagal memuat materi. Coba lagi saat online.</div>';
+    MeaningEduUI.showError(wrap, 'Gagal memuat data. Periksa koneksi, lalu coba lagi.', () => muatMateriSiswa(kelasId));
   }
 }
 
@@ -702,7 +719,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
 
       try {
         const response = await fetchWithAuth('/ai/socratic', {
-          
+
           method: 'POST',
           body: JSON.stringify({
             topik_fisika: aktivitasTerpilih.judul,

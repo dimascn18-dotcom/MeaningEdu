@@ -5,7 +5,7 @@ const API_BASE_URL = self.MEANINGEDU_CONFIG.API_BASE_URL;
 const API_ORIGIN = new URL(API_BASE_URL).origin;
 // PENTING: naikkan angka versi ini SETIAP kali Anda deploy perubahan baru.
 // Ini yang memaksa browser membuang cache lama tanpa perlu Ctrl+F5.
-const CACHE_NAME = 'meaningedu-v7';
+const CACHE_NAME = 'meaningedu-v8';
 const DB_NAME = 'MeaningEduDB';
 const DB_VERSION = 1;
 const JOURNAL_STORE = 'jurnalOffline';
@@ -17,6 +17,8 @@ const ASSETS = [
   '/dashboard-guru.html',
   '/workspace-siswa.html',
   '/style.css',
+  '/polish.css',
+  '/ui.js',
   '/config.js',
   '/app.js',
   '/math-render.js',
