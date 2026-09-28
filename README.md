@@ -188,3 +188,32 @@ Urutan rilis aman:
 6. smoke-test registrasi siswa, permohonan guru, approval admin, jurnal online/offline, rumus, dan PDF lintas peran.
 
 Jangan commit `.env`, token Blob, connection string database, JWT secret, atau API key.
+# MeaningEdu 03 (MVP)
+
+Jalankan `cd backend && npm run migrate` untuk menambahkan tabel `teacher_reflections`,
+`pedagogical_interventions`, dan `path_recommendation_decisions` (migrasi `0010`).
+Migrasi ini tidak menghitung ulang atau mengubah observasi MLI v2. Jalankan migrasi
+sebelum memakai frontend MeaningEdu 03.
+
+Guru pemilik kelas dapat membaca/menyimpan refleksi melalui
+`GET/PUT /teacher-reflections/activity/:aktivitas_id` dan melihat daftar melalui
+`GET /teacher-reflections/class/:kelas_id`. Tiga isian wajib adalah
+`what_worked`, `student_difficulties`, dan `next_change`; hasil AI tidak
+pernah disimpan sebagai refleksi.
+
+Guru mencatat intervensi melalui `POST /pedagogy/interventions/:aktivitas_id`
+(`problem_note`, `action_note`, opsional `target_dimension`, `target_activity_id`,
+`recommended_path_id`), melihat riwayat via `GET /pedagogy/interventions/:kelas_id`,
+dan mengisi tindak lanjut melalui `PATCH /pedagogy/interventions/:id/follow-up`
+(`target_activity_id` dan opsional `follow_up_note`). Snapshot kelas memakai
+observasi MLI v2 lengkap terakhir per siswa yang terdaftar. Jika cakupan salah
+satu aktivitas kurang dari 70%, perubahan numerik ditampilkan sebagai tidak
+tersedia. Selisih yang tersedia merupakan perubahan teramati, bukan efek kausal.
+
+Siswa terdaftar mendapat maksimal satu tawaran per pilihan jalur eksplisit via
+`GET /pedagogy/recommendation/:aktivitas_id`, kemudian dapat `POST
+/pedagogy/recommendation/:aktivitas_id/decision` dengan `choice_log_id`,
+`recommended_path_id`, dan `decision` (`accepted` atau `declined`). Penerimaan
+mencatat pilihan jalur eksplisit baru; penolakan tidak mengubah jalur. Tab awal
+yang terbuka otomatis tidak dianggap pilihan. Advisor guru dapat menerima
+`aktivitas_id` sebagai konteks tambahan yang diverifikasi kepemilikannya.

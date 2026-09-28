@@ -292,6 +292,37 @@
 
           <div id="mliArea"></div>
         </div>
+        <div class="panel" id="teacherReflectionPanel" style="display:none;">
+          <h3>Refleksi Guru</h3>
+          <p style="font-size:0.85rem;">Tuliskan pengamatan Anda setelah aktivitas. Data MLI di atas adalah konteks, bukan isi refleksi otomatis.</p>
+          <label for="teacherWhatWorked">Apa yang berjalan baik?</label>
+          <textarea id="teacherWhatWorked" rows="3" maxlength="5000"></textarea>
+          <label for="teacherDifficulties">Kesulitan apa yang terlihat pada siswa?</label>
+          <textarea id="teacherDifficulties" rows="3" maxlength="5000"></textarea>
+          <label for="teacherNextChange">Apa yang akan Anda ubah pada pembelajaran berikutnya?</label>
+          <textarea id="teacherNextChange" rows="3" maxlength="5000"></textarea>
+          <button class="btn-submit-mini" id="saveTeacherReflection" type="button">Simpan refleksi</button>
+          <p id="teacherReflectionStatus" role="status"></p>
+        </div>
+        <div class="panel" id="interventionPanel" style="display:none;">
+          <h3>Riwayat Intervensi</h3>
+          <p style="font-size:0.85rem;">Catat masalah yang diamati, tindakan guru, lalu bandingkan dengan aktivitas berikutnya. Perubahan MLI adalah observasi, bukan bukti sebab akibat.</p>
+          <label for="interventionDimension">Dimensi yang diamati (opsional)</label>
+          <select id="interventionDimension">
+            <option value="">Umum</option><option value="relevansi_kontekstual">Relevansi Kontekstual</option>
+            <option value="otonomi">Otonomi</option><option value="persepsi_kompetensi">Persepsi Kompetensi</option>
+            <option value="keterlibatan_kognitif">Keterlibatan Kognitif</option><option value="refleksi_metakognitif">Refleksi Metakognitif</option>
+          </select>
+          <label for="interventionProblem">Masalah yang diamati</label><textarea id="interventionProblem" rows="2" maxlength="5000"></textarea>
+          <label for="interventionAction">Tindakan yang dilakukan atau direncanakan</label><textarea id="interventionAction" rows="2" maxlength="5000"></textarea>
+          <label for="interventionTarget">Aktivitas tindak lanjut (dapat dipilih kemudian)</label>
+          <select id="interventionTarget"><option value="">Belum dipilih</option></select>
+          <label for="interventionPath">Jalur yang dapat disarankan (opsional)</label>
+          <select id="interventionPath"><option value="">Tidak ada saran khusus</option></select>
+          <button class="btn-submit-mini" id="saveIntervention" type="button">Catat intervensi</button>
+          <p id="interventionStatus" role="status"></p>
+          <div id="interventionHistory"></div>
+        </div>
       </section>
     </div>
   </main>
@@ -316,6 +347,136 @@
       let kelasAktifId = null;
       let aktivitasAktifId = null;
       let aktivitasAktifJudul = null;
+      let kelasActivities = [];
+      function intervensiTargetOptions() {
+        const select = document.getElementById('interventionTarget');
+        select.replaceChildren(new Option('Belum dipilih', ''));
+        kelasActivities.filter(a => a.id !== aktivitasAktifId).forEach(a => select.add(new Option(a.judul, a.id)));
+        intervensiPathOptions();
+      }
+      function intervensiPathOptions() {
+        const select = document.getElementById('interventionPath');
+        select.replaceChildren(new Option('Tidak ada saran khusus', ''));
+        const activity = kelasActivities.find(a => String(a.id) === document.getElementById('interventionTarget').value);
+        (activity?.jalur || []).forEach(path => select.add(new Option(path.label, path.id)));
+      }
+      document.getElementById('interventionTarget').addEventListener('change', intervensiPathOptions);
+      async function muatIntervensi() {
+        if (!kelasAktifId) return;
+        const classId = kelasAktifId;
+        const history = document.getElementById('interventionHistory');
+        history.textContent = 'Memuat riwayat...';
+        try {
+          const response = await fetchWithAuth(`/pedagogy/interventions/${classId}`);
+          const data = await response.json();
+          if (classId !== kelasAktifId) return;
+          if (!response.ok) throw new Error(data.message || 'Gagal memuat intervensi.');
+          history.replaceChildren();
+          if (!data.interventions.length) { history.textContent = 'Belum ada intervensi di kelas ini.'; return; }
+          data.interventions.forEach(item => {
+            const box = document.createElement('div');
+            box.style.cssText = 'border-top:1px solid #ddd;padding:12px 0;';
+            const heading = document.createElement('strong');
+            heading.textContent = `${item.source_title} → ${item.target_title || 'tindak lanjut belum dipilih'}`;
+            const note = document.createElement('p');
+            note.textContent = `Masalah: ${item.problem_note} · Tindakan: ${item.action_note}`;
+            box.append(heading, note);
+            if (item.comparison) {
+              const comparison = document.createElement('p');
+              comparison.textContent = item.comparison.observed_change == null
+                ? 'Perbandingan MLI belum cukup data pada satu atau kedua aktivitas.'
+                : `Perubahan teramati ${item.comparison.measure}: ${item.comparison.before.toFixed(1)} → ${item.comparison.after.toFixed(1)} (${item.comparison.observed_change >= 0 ? '+' : ''}${item.comparison.observed_change.toFixed(1)}). Tidak membuktikan sebab akibat.`;
+              box.append(comparison);
+            }
+            const targetSelect = document.createElement('select');
+            targetSelect.setAttribute('aria-label', 'Aktivitas tindak lanjut');
+            targetSelect.add(new Option('Pilih aktivitas tindak lanjut', ''));
+            kelasActivities.filter(a => a.id !== item.source_activity_id
+              && (!item.target_activity_id || a.id === item.target_activity_id))
+              .forEach(a => targetSelect.add(new Option(a.judul, a.id)));
+            if (item.target_activity_id) targetSelect.value = item.target_activity_id;
+            const followNote = document.createElement('input');
+            followNote.placeholder = 'Catatan tindak lanjut (opsional)';
+            followNote.maxLength = 5000;
+            followNote.value = item.follow_up_note || '';
+            const button = document.createElement('button');
+            button.type = 'button'; button.textContent = 'Bandingkan observasi';
+            button.addEventListener('click', async () => {
+              if (!targetSelect.value) { alert('Pilih aktivitas tindak lanjut.'); return; }
+              button.disabled = true;
+              try {
+                const result = await fetchWithAuth(`/pedagogy/interventions/${item.id}/follow-up`, {
+                  method: 'PATCH', body: JSON.stringify({ target_activity_id: Number(targetSelect.value), follow_up_note: followNote.value.trim() || undefined })
+                });
+                if (!result.ok) throw new Error((await result.json()).message || 'Gagal membandingkan.');
+                muatIntervensi();
+              } catch (error) { alert(error.message); button.disabled = false; }
+            });
+            box.append(targetSelect, followNote, button);
+            history.appendChild(box);
+          });
+        } catch (error) { if (classId === kelasAktifId) history.textContent = error.message; }
+      }
+      document.getElementById('saveIntervention').addEventListener('click', async () => {
+        if (!aktivitasAktifId) return;
+        const activityId = aktivitasAktifId;
+        const status = document.getElementById('interventionStatus');
+        const body = {
+          target_dimension: document.getElementById('interventionDimension').value || null,
+          problem_note: document.getElementById('interventionProblem').value.trim(),
+          action_note: document.getElementById('interventionAction').value.trim(),
+          target_activity_id: Number(document.getElementById('interventionTarget').value) || null,
+          recommended_path_id: Number(document.getElementById('interventionPath').value) || null
+        };
+        if (!body.problem_note || !body.action_note) { status.textContent = 'Isi masalah dan tindakan.'; return; }
+        try {
+          const response = await fetchWithAuth(`/pedagogy/interventions/${activityId}`, { method: 'POST', body: JSON.stringify(body) });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Gagal mencatat intervensi.');
+          status.textContent = 'Intervensi tercatat.';
+          document.getElementById('interventionProblem').value = '';
+          document.getElementById('interventionAction').value = '';
+          muatIntervensi();
+        } catch (error) { status.textContent = error.message; }
+      });
+      async function muatRefleksiGuru(aktivitasId) {
+        const panel = document.getElementById('teacherReflectionPanel');
+        panel.style.display = 'block';
+        ['teacherWhatWorked', 'teacherDifficulties', 'teacherNextChange'].forEach(id => { document.getElementById(id).value = ''; });
+        const status = document.getElementById('teacherReflectionStatus');
+        status.textContent = 'Memuat refleksi...';
+        try {
+          const response = await fetchWithAuth(`/teacher-reflections/activity/${aktivitasId}`);
+          const data = await response.json();
+          if (aktivitasAktifId !== aktivitasId) return;
+          if (!response.ok) throw new Error(data.message || 'Gagal memuat refleksi.');
+          const r = data.reflection;
+          if (r) {
+            document.getElementById('teacherWhatWorked').value = r.what_worked;
+            document.getElementById('teacherDifficulties').value = r.student_difficulties;
+            document.getElementById('teacherNextChange').value = r.next_change;
+          }
+          status.textContent = r ? 'Refleksi tersimpan; Anda dapat memperbaruinya.' : 'Belum ada refleksi untuk aktivitas ini.';
+        } catch (error) { if (aktivitasAktifId === aktivitasId) status.textContent = error.message; }
+      }
+      document.getElementById('saveTeacherReflection').addEventListener('click', async () => {
+        if (!aktivitasAktifId) return;
+        const activityId = aktivitasAktifId;
+        const fields = {
+          what_worked: document.getElementById('teacherWhatWorked').value.trim(),
+          student_difficulties: document.getElementById('teacherDifficulties').value.trim(),
+          next_change: document.getElementById('teacherNextChange').value.trim()
+        };
+        const status = document.getElementById('teacherReflectionStatus');
+        if (Object.values(fields).some(v => !v)) { status.textContent = 'Isi ketiga bagian refleksi.'; return; }
+        try {
+          const response = await fetchWithAuth(`/teacher-reflections/activity/${activityId}`, {
+            method: 'PUT', body: JSON.stringify(fields)
+          });
+          const data = await response.json();
+          if (aktivitasAktifId === activityId) status.textContent = response.ok ? 'Refleksi tersimpan.' : (data.message || 'Gagal menyimpan.');
+        } catch (error) { if (aktivitasAktifId === activityId) status.textContent = 'Koneksi gagal; refleksi belum tersimpan.'; }
+      });
 
        // ================= Bagian 2: hint kedalaman materi sesuai template =================
       function updateMateriDepthHint() {
@@ -800,7 +961,7 @@ ${data.pertanyaan_kesimpulan}`;
         try {
           const res = await fetchWithAuth('/ai/pedagogical-advisor', {
             method: 'POST',
-            body: JSON.stringify({ topik_fisika: aktivitasAktifJudul, rata_rata_kelas: rataRataKelas, dimensi })
+            body: JSON.stringify({ topik_fisika: aktivitasAktifJudul, rata_rata_kelas: rataRataKelas, dimensi, aktivitas_id: aktivitasAktifId })
           });
           const data = await res.json();
           box.querySelector('p').textContent = res.ok ? data.saran : ('Gagal memuat saran: ' + data.message);
@@ -1024,6 +1185,9 @@ ${data.pertanyaan_kesimpulan}`;
 
       async function muatAktivitas(kelasId) {
         kelasAktifId = kelasId;
+        kelasActivities = [];
+        document.getElementById('teacherReflectionPanel').style.display = 'none';
+        document.getElementById('interventionPanel').style.display = 'none';
         muatTren(kelasId);
         muatMateri(kelasId);
         document.getElementById('toggleBuilder').style.display = 'inline-flex';
@@ -1039,6 +1203,9 @@ ${data.pertanyaan_kesimpulan}`;
             return;
           }
           wrap.innerHTML = '';
+          kelasActivities = data;
+          document.getElementById('interventionPanel').style.display = 'block';
+          muatIntervensi();
           data.forEach((akt, i) => {
             const chip = document.createElement('button');
             chip.className = 'aktivitas-chip' + (i === 0 ? ' active' : '');
@@ -1048,13 +1215,17 @@ ${data.pertanyaan_kesimpulan}`;
               chip.classList.add('active');
               aktivitasAktifId = akt.id;
               aktivitasAktifJudul = akt.judul;
+              intervensiTargetOptions();
               muatMLI(akt.id);
+              muatRefleksiGuru(akt.id);
             });
             wrap.appendChild(chip);
           });
           aktivitasAktifId = data[0].id;
           aktivitasAktifJudul = data[0].judul;
+          intervensiTargetOptions();
           muatMLI(data[0].id);
+          muatRefleksiGuru(data[0].id);
         } catch (err) {
           console.error(err);
           wrap.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="ic">🔌</span>Terjadi kesalahan koneksi ke server.</div>';

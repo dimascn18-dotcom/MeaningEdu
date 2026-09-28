@@ -8,7 +8,9 @@ if (!process.env.TEST_DATABASE_URL) {
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex');
-process.env.GEMINI_API_KEY = '';
+// Local deterministic Gemini double: exercise the real journal -> rubric
+// validation -> MLI arithmetic pipeline without external AI calls.
+process.env.GEMINI_API_KEY = 'e2e-test-only';
 process.env.NODE_ENV = 'test';
 
 const uploadedPdfs = new Map();
@@ -28,15 +30,40 @@ blob.head = async url => {
 
 const gemini = require('@google/generative-ai');
 gemini.GoogleGenerativeAI = class FakeGoogleGenerativeAI {
-  getGenerativeModel() {
+  getGenerativeModel(options = {}) {
     return {
-      async generateContent() {
+      async generateContent(prompt) {
+        const instruction = options.systemInstruction || '';
+        let content;
+        if (instruction.includes('MeaningEdu MLI v2')) {
+          const { artefak } = JSON.parse(prompt);
+          const improved = artefak.jawaban_lanjutan.includes('percobaan kedua');
+          const level = improved ? 3 : 1;
+          const evidence = field => ({ field, quote: artefak[field].slice(0, 32) });
+          content = JSON.stringify({
+            R1: { level, evidence: evidence('jawaban_awal') },
+            R2: { level, evidence: evidence('jawaban_lanjutan') },
+            E1: { level, evidence: evidence('jawaban_lanjutan') },
+            E2: { level, evidence: evidence('jawaban_lanjutan') },
+            M1: { level, evidence: evidence('jawaban_kesenjangan') },
+            M2: { level, evidence: evidence('jawaban_strategi') }
+          });
+        } else if (instruction.includes('pendamping refleksi metakognitif')) {
+          content = JSON.stringify({
+            pertanyaan_kesenjangan: 'Bagian mana yang masih sulit?',
+            pertanyaan_strategi: 'Apa strategi belajarmu berikutnya?'
+          });
+        } else if (instruction.includes('AI Reflection Companion')) {
+          content = 'Apa hubungan pengamatanmu dengan perubahan energi?';
+        } else {
+          content = JSON.stringify({
+            judul: 'Energi dan Massa',
+            konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\n🧪 Saran Eksperimen Sederhana:\n1. Bandingkan perubahan energi pada benda di sekitar.'
+          });
+        }
         return {
           response: Promise.resolve({
-            text: () => JSON.stringify({
-              judul: 'Energi dan Massa',
-              konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\n🧪 Saran Eksperimen Sederhana:\n1. Bandingkan perubahan energi pada benda di sekitar.'
-            })
+            text: () => content
           })
         };
       }
@@ -47,7 +74,7 @@ gemini.GoogleGenerativeAI = class FakeGoogleGenerativeAI {
 const pool = require('../../config/db');
 const { runMigrations } = require('../../scripts/migrate');
 
-async function resetFixture() {
+async function resetFixture({ enrolled = true } = {}) {
   uploadedPdfs.clear();
   await pool.query('TRUNCATE users RESTART IDENTITY CASCADE');
   await pool.query(`
@@ -58,8 +85,8 @@ async function resetFixture() {
       (3, 'Siswa Non Enrolled', 'outsider-e2e@example.test', 'unused', 'siswa', 'aktif');
     INSERT INTO kelas (id, guru_id, nama_kelas, topik_fisika, kode_kelas)
     VALUES (1, 1, 'Fisika E2E', 'Energi', 'E2E00001');
-    INSERT INTO kelas_siswa (kelas_id, siswa_id) VALUES (1, 2);
   `);
+  if (enrolled) await pool.query('INSERT INTO kelas_siswa (kelas_id, siswa_id) VALUES (1, 2)');
 }
 
 async function start() {
@@ -76,7 +103,7 @@ async function start() {
     res.json({ token: jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '10m' }) });
   });
   app.post('/__e2e/reset', async (_req, res) => {
-    await resetFixture();
+    await resetFixture({ enrolled: _req.query.unenrolled !== '1' });
     res.json({ ok: true });
   });
   app.put('/__e2e/blob-upload', express.raw({ type: 'application/pdf', limit: '10mb' }), (req, res) => {

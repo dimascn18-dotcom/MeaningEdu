@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const auth = require('../middleware/auth');
+const authorize = require('../middleware/authorize');
+const controller = require('../controllers/pedagogyController');
+const recommendations = require('../controllers/recommendationController');
+router.post('/interventions/:aktivitas_id', auth, authorize('guru'), controller.create);
+router.get('/interventions/:kelas_id', auth, authorize('guru'), controller.getClass);
+router.patch('/interventions/:id/follow-up', auth, authorize('guru'), controller.followUp);
+router.get('/recommendation/:aktivitas_id', auth, authorize('siswa'), recommendations.get);
+router.post('/recommendation/:aktivitas_id/decision', auth, authorize('siswa'), recommendations.decide);
+module.exports = router;

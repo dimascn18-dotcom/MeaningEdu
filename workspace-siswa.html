@@ -220,6 +220,7 @@
       <div class="jalur-tabs" id="jalurTabsContainer">
         <!-- Tab jalur belajar diisi otomatis lewat JS berdasarkan data dari server -->
       </div>
+      <div id="pathRecommendation" role="status" style="display:none; padding:12px; margin-bottom:12px; border:1px solid var(--sage); border-radius:8px;"></div>
 
       <div class="materi-tools">
         <button class="materi-tool-btn" id="btnSimplifier">✨ AI Simplifier: sederhanakan bahasa</button>
@@ -499,6 +500,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
     // ================= 3. PANEL MATERI + JALUR OTONOM =================
     function pilihAktivitas(akt) {
       aktivitasTerpilih = akt;
+      document.getElementById('pathRecommendation').style.display = 'none';
       waktuMulaiBelajar = Date.now();
       simplifierAktif = false;
 
@@ -536,7 +538,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       pilihJalur(daftarJalur[0], false);
     }
 
-    function pilihJalur(jalurObj, explicitChoice) {
+    async function pilihJalur(jalurObj, explicitChoice) {
       teksAsliMateri = jalurObj.konten || '';
       simplifierAktif = false;
       document.getElementById('btnSimplifier').classList.remove('active');
@@ -544,10 +546,62 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
 
       if (!explicitChoice) return;
       // Hanya klik siswa yang tercatat sebagai pilihan eksplisit.
-      fetchWithAuth(`/aktivitas/${aktivitasTerpilih.id}/pilih-jalur`, {
-        method: 'POST',
-        body: JSON.stringify({ jalur_id: jalurObj.id })
-      }).catch(err => console.warn('Gagal mencatat pilihan jalur (materi tetap bisa dibaca):', err));
+      const activityId = aktivitasTerpilih.id;
+      document.getElementById('pathRecommendation').style.display = 'none';
+      try {
+        const saved = await fetchWithAuth(`/aktivitas/${activityId}/pilih-jalur`, {
+          method: 'POST', body: JSON.stringify({ jalur_id: jalurObj.id })
+        });
+        if (!saved.ok) return;
+        if (aktivitasTerpilih?.id === activityId) muatRekomendasiJalur(activityId);
+      } catch (error) { console.warn('Gagal mencatat pilihan jalur:', error); }
+    }
+
+    async function muatRekomendasiJalur(activityId) {
+      const box = document.getElementById('pathRecommendation');
+      try {
+        const response = await fetchWithAuth(`/pedagogy/recommendation/${activityId}`);
+        const data = await response.json();
+        if (aktivitasTerpilih?.id !== activityId || !response.ok) return;
+        box.replaceChildren();
+        const rec = data.recommendation;
+        if (!rec) { box.style.display = 'none'; return; }
+        const explanation = document.createElement('p');
+        explanation.textContent = rec.explanation + ' ' + rec.note;
+        box.append(explanation);
+        for (const [decision, label] of [['accepted', 'Coba jalur ini'], ['declined', 'Tetap di jalur saya']]) {
+          const button = document.createElement('button');
+          button.type = 'button'; button.textContent = label;
+          button.addEventListener('click', async () => {
+            box.querySelectorAll('button').forEach(b => { b.disabled = true; });
+            try {
+              const result = await fetchWithAuth(`/pedagogy/recommendation/${activityId}/decision`, {
+                method: 'POST', body: JSON.stringify({ choice_log_id: rec.choice_log_id,
+                  recommended_path_id: rec.recommended_path_id, decision })
+              });
+              if (!result.ok) throw new Error((await result.json()).message || 'Gagal menyimpan pilihan.');
+              if (aktivitasTerpilih?.id !== activityId) return;
+              box.style.display = 'none';
+              if (decision === 'accepted') {
+                const path = aktivitasTerpilih.jalur.find(p => p.id === rec.recommended_path_id);
+                if (path) {
+                  const index = aktivitasTerpilih.jalur.indexOf(path);
+                  const tabs = document.querySelectorAll('#jalurTabsContainer .jalur-tab');
+                  tabs.forEach(t => t.classList.remove('active'));
+                  tabs[index]?.classList.add('active');
+                  // Server has already recorded this explicit selection atomically.
+                  pilihJalur(path, false);
+                }
+              }
+            } catch (error) {
+              box.querySelectorAll('button').forEach(b => { b.disabled = false; });
+              explanation.textContent = error.message;
+            }
+          });
+          box.append(button);
+        }
+        box.style.display = 'block';
+      } catch (error) { box.style.display = 'none'; }
     }
 
     // ================= 4. AI SIMPLIFIER TOGGLE =================
