@@ -223,7 +223,7 @@
       <button class="incl-btn" id="btnFontBesar" aria-label="Perbesar teks materi">A+</button>
     </div>
       <div class="materi-tools">
-        <button class="materi-tool-btn" id="btnSimplifier">✨ AI Simplifier: sederhanakan bahasa</button>
+        <button class="materi-tool-btn" id="btnSimplifier">AI Simplifier: sederhanakan bahasa</button>
       </div>
       <p id="learningStatus" aria-live="polite"></p>
 
@@ -543,7 +543,7 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
       document.getElementById('materiJudul').textContent = akt.judul;
       document.getElementById('materiTemplate').textContent = akt.template_pedagogis || 'Aktivitas';
       document.getElementById('btnSimplifier').classList.remove('active');
-      document.getElementById('btnSimplifier').textContent = '✨ AI Simplifier: sederhanakan bahasa';
+      document.getElementById('btnSimplifier').textContent = 'AI Simplifier: sederhanakan bahasa';
 
       renderJalurTabs(akt);
       bukaJurnal(akt);
@@ -646,12 +646,12 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
         document.getElementById('materiContent').textContent = teksAsliMateri;
         simplifierAktif = false;
         btn.classList.remove('active');
-        btn.textContent = '✨ AI Simplifier: sederhanakan bahasa';
+        btn.textContent = 'AI Simplifier: sederhanakan bahasa';
         return;
       }
       const contentEl = document.getElementById('materiContent');
       const teksSebelum = contentEl.textContent;
-      contentEl.innerHTML = '<span class="materi-loading">✨ AI sedang menyederhanakan bahasa...</span>';
+      contentEl.innerHTML = '<span class="materi-loading">AI sedang menyederhanakan bahasa...</span>';
       btn.disabled = true;
       try {
         const res = await fetchWithAuth('/ai/simplify', {
@@ -659,11 +659,15 @@ document.getElementById('daftarMateriSiswa').addEventListener('click', async eve
           body: JSON.stringify({ teks_asli: teksAsliMateri })
         });
         const data = await res.json();
-        if (res.ok) {
+        if (res.ok && data.source === 'local-fallback-mode') {
+          contentEl.textContent = teksAsliMateri;
+          feedback('learningStatus', 'AI belum tersedia. Materi asli tetap ditampilkan.');
+        } else if (res.ok) {
           contentEl.textContent = data.teks_sederhana;
           simplifierAktif = true;
           btn.classList.add('active');
-          btn.textContent = '↩️ Kembalikan Bahasa Asli';
+          btn.textContent = 'Kembalikan Bahasa Asli';
+          feedback('learningStatus', 'Bahasa materi telah disederhanakan.', 'success');
         } else {
           contentEl.textContent = teksSebelum;
           feedback('learningStatus', 'Gagal menyederhanakan: ' + (data.message || 'Terjadi kesalahan.'));

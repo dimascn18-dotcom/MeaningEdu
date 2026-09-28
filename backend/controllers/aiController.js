@@ -15,9 +15,29 @@ const ATURAN_MATEMATIKA = `ATURAN PENULISAN MATEMATIKA:
   \\includegraphics, atau macro buatan sendiri.
 - Jika respons berupa JSON, pastikan backslash LaTeX ter-escape sesuai JSON dan nilai akhirnya tetap
   menyimpan source LaTeX, bukan HTML hasil render.`;
+const ATURAN_GAYA = `Tulis langsung isi yang diminta dalam bahasa Indonesia. Jangan gunakan emoji, ikon dekoratif,
+salam, pujian otomatis, atau pembuka seperti "Berikut adalah". Hindari pengulangan dan klaim tentang
+kondisi daerah tertentu bila informasi yang diberikan tidak cukup.`;
+
+function bersihkanGaya(value) {
+  return String(value || '').replace(/[\p{Extended_Pictographic}\uFE0F\u200D\u20E3]/gu, '')
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function bacaFields(text, fields) {
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object') throw new Error('Format respons AI tidak sesuai.');
+  const result = {};
+  for (const field of fields) {
+    if (typeof parsed[field] !== 'string') throw new Error(`Bagian ${field} tidak tersedia.`);
+    result[field] = bersihkanGaya(parsed[field]);
+    if (!result[field]) throw new Error(`Bagian ${field} kosong.`);
+  }
+  return result;
+}
 
 function getModel(systemInstruction) {
-  return genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction });
+  return genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction: `${systemInstruction}\n${ATURAN_GAYA}` });
 }
 
 // Model dengan structured output (responseSchema) — jauh lebih tahan
@@ -27,7 +47,7 @@ function getModel(systemInstruction) {
 function getStructuredModel(systemInstruction, schema) {
   return genAI.getGenerativeModel({
     model: GEMINI_MODEL,
-    systemInstruction,
+    systemInstruction: `${systemInstruction}\n${ATURAN_GAYA}`,
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: schema
@@ -47,20 +67,20 @@ exports.socraticReflection = async (req, res) => {
 
     const prompt = `Topik Fisika: ${topik_fisika}. Jawaban awalku: "${jawaban_awal_siswa}"`;
     const result = await model.generateContent(prompt);
-    const text = (await result.response).text();
+    const text = bersihkanGaya((await result.response).text());
 
     // Kalau Gemini memblokir/menahan respons (safety filter dsb), text()
     // bisa balik string kosong tanpa melempar error. Perlakukan itu
     // sebagai kegagalan juga supaya jatuh ke mode cadangan, bukan
     // mengirim gelembung pertanyaan kosong ke siswa.
-    if (!text || !text.trim()) {
-      throw new Error('Respons AI kosong (kemungkinan tersaring safety filter).');
+    if (!text || text.length > 240 || (text.match(/\?/g) || []).length !== 1) {
+      throw new Error('Pertanyaan AI kosong atau tidak mengikuti format satu pertanyaan singkat.');
     }
 
     return res.status(200).json({ pertanyaan_ai: text, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (socratic):", error.message, "— Mode cadangan aktif.");
-    const cadangan = `Analisis yang bagus tentang ${topik_fisika}! Kamu tadi menyampaikan bahwa: "${jawaban_awal_siswa}". Sekarang, mari kita bawa konsep ini ke lingkungan sekitarmu. Menurutmu bagaimana fenomena ini bekerja pada alat tradisional atau ekosistem alam di daerah tempat tinggalmu?`;
+    const cadangan = 'Bagian mana dari topik ini yang masih ingin kamu pahami, dan bagaimana kamu akan mengujinya?';
     return res.status(200).json({ pertanyaan_ai: cadangan, source: "local-fallback-mode" });
   }
 };
@@ -91,7 +111,10 @@ exports.metacognitionScaffold = async (req, res) => {
     const result = await model.generateContent(
       `Topik: ${topik_fisika || 'Fisika'}\nJawaban awal: ${jawaban_awal}\nJawaban lanjutan: ${jawaban_lanjutan}`
     );
-    const parsed = JSON.parse((await result.response).text());
+    const parsed = bacaFields((await result.response).text(), ['pertanyaan_kesenjangan', 'pertanyaan_strategi']);
+    if (Object.values(parsed).some(question => question.length > 240 || !question.includes('?'))) {
+      throw new Error('Pertanyaan refleksi AI tidak mengikuti format singkat.');
+    }
     return res.status(200).json({ ...parsed, source: 'gemini-live' });
   } catch (error) {
     console.warn('⚠️ Gemini API Error (metakognisi-scaffold):', error.message, '— Mode cadangan aktif.');
@@ -121,10 +144,10 @@ exports.simplifyContent = async (req, res) => {
       Keluarkan HANYA teks hasil sederhana, tanpa embel-embel pembuka.`);
 
     const result = await model.generateContent(matematika.teksTerlindungi);
-    const text = (await result.response).text();
+    const text = bersihkanGaya((await result.response).text());
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
 
-    return res.status(200).json({ teks_sederhana: matematika.pulihkan(text.trim()), source: "gemini-live" });
+    return res.status(200).json({ teks_sederhana: matematika.pulihkan(text), source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (simplifier):", error.message, "— Mode cadangan aktif.");
     return res.status(200).json({ teks_sederhana: teks_asli, source: "local-fallback-mode" });
@@ -154,10 +177,10 @@ Pertanyaan pemantik: ${pertanyaan_pemantik || '-'}
 Berikan saran perbaikan relevansi kontekstualnya.`;
 
     const result = await model.generateContent(prompt);
-    const text = (await result.response).text();
+    const text = bersihkanGaya((await result.response).text());
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
 
-    return res.status(200).json({ saran: text.trim(), source: "gemini-live" });
+    return res.status(200).json({ saran: text, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (validate-activity):", error.message, "— Mode cadangan aktif.");
     const saranCadangan = `Draf aktivitas sudah cukup baik. Coba kaitkan konsep "${judul || 'topik ini'}" lebih eksplisit dengan aktivitas sehari-hari di wilayah ${wilayah_sekolah || 'sekolahmu'}, misalnya lewat contoh alat atau kejadian yang sudah dikenal siswa.`;
@@ -184,9 +207,10 @@ exports.generateLocalContext = async (req, res) => {
   try {
     const model = getStructuredModel(
       `Kamu adalah AI Local Context & SDG Project Builder untuk platform MeaningEdu.
-      Berdasarkan topik Fisika dan wilayah sekolah, buat draf aktivitas kontekstual berbasis kearifan lokal
-      dan isu SDGs setempat. "deskripsi" berisi 2-3 kalimat ide proyek/aktivitas. "pertanyaan_pemantik" berisi
-      1 pertanyaan pemicu rasa ingin tahu siswa. ${ATURAN_MATEMATIKA}`,
+      Berdasarkan topik Fisika dan wilayah sekolah, buat draf aktivitas kontekstual. "deskripsi" cukup
+      satu kalimat ide aktivitas; "pertanyaan_pemantik" tepat satu pertanyaan yang dapat diuji siswa.
+      Jangan mengarang kearifan lokal atau isu SDGs spesifik tanpa konteks yang diberikan guru.
+      ${ATURAN_MATEMATIKA}`,
       {
         type: SchemaType.OBJECT,
         properties: {
@@ -199,8 +223,8 @@ exports.generateLocalContext = async (req, res) => {
 
     const prompt = `Topik Fisika: ${topik_fisika}. Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}.`;
     const result = await model.generateContent(prompt);
-    const text = (await result.response).text();
-    const parsed = JSON.parse(text);
+    const text = bersihkanGaya((await result.response).text());
+    const parsed = bacaFields(text, ['deskripsi', 'pertanyaan_pemantik']);
 
     return res.status(200).json({ ...parsed, source: "gemini-live" });
   } catch (error) {
@@ -300,7 +324,9 @@ exports.teachingCopilot = async (req, res) => {
       ${instruksiPedagogis}
       ${instruksiKonteksMateri}
 
-      Bahasa Indonesia yang jelas dan tidak teknis, cocok untuk guru yang bukan lulusan Fisika. ${ATURAN_MATEMATIKA}
+      Bahasa Indonesia yang jelas dan tidak teknis, cocok untuk guru yang bukan lulusan Fisika.
+      Setiap bagian ringkas dan langsung dapat diperiksa guru; jangan ulangi judul/topik di setiap bagian.
+      ${ATURAN_MATEMATIKA}
       "panduan_guru" adalah catatan KHUSUS UNTUK GURU (tidak akan dilihat siswa): jelaskan konsep Fisika di balik
       eksperimen ini, hasil/jawaban yang diharapkan, serta tips antisipasi kesalahan umum siswa/guru non-linier.`,
       {
@@ -324,7 +350,10 @@ Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}
 Template pedagogis: ${templateBersih || 'tidak diketahui'}`;
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
-    const parsed = JSON.parse(text);
+    const parsed = bacaFields(text, [
+      'judul', 'tujuan', 'pertanyaan_hipotesis', 'alat_bahan', 'langkah_langkah',
+      'pertanyaan_pengolahan_data', 'pertanyaan_kesimpulan', 'panduan_guru'
+    ]);
 
     return res.status(200).json({ ...parsed, source: "gemini-live" });
   } catch (error) {
@@ -336,13 +365,13 @@ Template pedagogis: ${templateBersih || 'tidak diketahui'}`;
     // yang jujur mengarahkan guru mengisi sendiri sesuai topik.
     return res.status(200).json({
       judul: `[Isi Manual] Eksperimen Mandiri: ${topik_fisika}`,
-      tujuan: `Siswa mengamati dan membuktikan sendiri fenomena "${topik_fisika}" melalui percobaan sederhana.`,
-      pertanyaan_hipotesis: `[Sambungan ke AI terputus — tulis 1 pertanyaan terbuka yang memancing dugaan siswa SEBELUM mencoba, terkait topik "${topik_fisika}".]`,
-      alat_bahan: `[Sambungan ke AI terputus — pilih 3-5 bahan sehari-hari yang secara fisis relevan dengan "${topik_fisika}" (contoh: kalau topik optik → cermin/senter/air jernih; kalau listrik → baterai/kabel/lampu kecil; kalau bunyi → gelas/karet/kaleng; kalau gerak/gaya → bola/kelereng/penggaris; sesuaikan dengan topik ini, JANGAN pakai botol berlubang kecuali topiknya memang tekanan zat cair).]`,
-      langkah_langkah: `[Sambungan ke AI terputus — tulis 3-5 langkah bernomor yang langsung mendemonstrasikan "${topik_fisika}" memakai bahan di atas.]`,
-      pertanyaan_pengolahan_data: `[Sambungan ke AI terputus — tulis pertanyaan yang menuntun siswa membaca pola dari data/pengamatan yang mereka kumpulkan pada percobaan "${topik_fisika}" ini.]`,
-      pertanyaan_kesimpulan: `Berdasarkan hasil percobaanmu, bagaimana kamu akan menjelaskan konsep "${topik_fisika}" dengan kata-katamu sendiri? Apa yang masih membuatmu bingung?`,
-      panduan_guru: `[Mode Cadangan] Koneksi ke AI terputus, jadi bagian eksperimen di atas SENGAJA berupa placeholder, bukan contoh konkret — supaya tidak salah topik (mis. memberi instruksi eksperimen air untuk topik Listrik). Mohon lengkapi manual sesuai "${topik_fisika}"${templateBersih ? ` dan template ${templateBersih}` : ''}, lalu coba klik tombol AI Teaching Co-Pilot lagi sebentar lagi kalau sinyal sudah kembali.`,
+      tujuan: `[Isi manual: tujuan pengamatan pada topik "${topik_fisika}".]`,
+      pertanyaan_hipotesis: '[Isi manual: satu pertanyaan terbuka sebelum percobaan.]',
+      alat_bahan: '[Isi manual: pilih bahan yang relevan dan aman untuk topik ini.]',
+      langkah_langkah: '[Isi manual: tulis langkah pengamatan dan data yang dicatat.]',
+      pertanyaan_pengolahan_data: '[Isi manual: tanyakan pola yang terlihat dari data.]',
+      pertanyaan_kesimpulan: '[Isi manual: minta siswa menjelaskan temuan dan keterbatasannya.]',
+      panduan_guru: `AI tidak tersedia. Ini kerangka kosong, bukan rancangan eksperimen siap terbit. Guru perlu melengkapi dan memeriksa kesesuaian Fisika untuk "${topik_fisika}"${templateBersih ? ` (${templateBersih})` : ''}.`,
       source: "local-fallback-mode"
     });
   }
@@ -401,10 +430,10 @@ Keterlibatan Kognitif: ${dimensi.keterlibatan}
 Refleksi Metakognitif: ${dimensi.refleksi}${teacherContext}`;
 
     const result = await model.generateContent(prompt);
-    const text = (await result.response).text();
+    const text = bersihkanGaya((await result.response).text());
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
 
-    return res.status(200).json({ saran: text.trim(), source: "gemini-live" });
+    return res.status(200).json({ saran: text, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (pedagogical-advisor):", error.message, "— Mode cadangan aktif.");
     const entries = Object.entries(dimensi);
@@ -477,8 +506,8 @@ exports.generateMateriTeks = async (req, res) => {
       Tulis ringkasan LANDASAN TEORI Fisika untuk topik yang diberikan.
       ${instruksiKedalaman}
 
-      Tulis dalam bahasa Indonesia, terstruktur dengan sub-judul singkat per bagian, panjang sedang
-      (sekitar 200-350 kata, boleh sedikit lebih panjang kalau memuat contoh perhitungan).
+      Tulis dalam bahasa Indonesia dengan subjudul singkat, sekitar 160-260 kata.
+      Untuk mode dengan persamaan, contoh perhitungan tetap wajib dan tidak boleh mengorbankan ketepatan.
       JANGAN menuliskan langkah-langkah eksperimen atau instruksi praktik — itu bagian terpisah dari materi ini.
       ${ATURAN_MATEMATIKA}
       Keluarkan HANYA teks materi, tanpa embel-embel pembuka seperti "Berikut adalah...".`);
@@ -488,15 +517,18 @@ Wilayah sekolah: ${wilayah_sekolah || 'Indonesia (umum)'}
 Template pedagogis yang dipilih guru: ${template_pedagogis || 'tidak diketahui'}`;
 
     const result = await model.generateContent(prompt);
-    const text = (await result.response).text();
+    const text = bersihkanGaya((await result.response).text());
     if (!text || !text.trim()) throw new Error('Respons AI kosong.');
+    if (tanpaPersamaan && (/\\\(|\\\[/.test(text) || /[=＝]/.test(text))) {
+      throw new Error('Materi Inquiry membocorkan persamaan.');
+    }
 
-    return res.status(200).json({ materi: text.trim(), tanpa_persamaan: tanpaPersamaan, source: "gemini-live" });
+    return res.status(200).json({ materi: text, tanpa_persamaan: tanpaPersamaan, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (generate-materi-teks):", error.message, "— Mode cadangan aktif.");
     const materiCadangan = tanpaPersamaan
-      ? `📖 Definisi\nKonsep "${topik_fisika}" adalah salah satu topik inti dalam Fisika yang mempelajari hubungan sebab-akibat antar besaran fisis terkait.\n\n🔗 Analogi Sehari-hari\nBayangkan fenomena "${topik_fisika}" ini seperti kejadian yang sering ditemui di sekitar ${wilayah_sekolah || 'lingkunganmu'} — cobalah kaitkan dengan kegiatan nelayan, petani, atau kehidupan sehari-hari setempat.\n\n(Catatan: persamaan matematis sengaja tidak dicantumkan karena template Inquiry Learning — biarkan siswa menemukannya sendiri lewat eksperimen.)`
-      : `📖 Definisi\nKonsep "${topik_fisika}" adalah salah satu topik inti dalam Fisika yang mempelajari hubungan sebab-akibat antar besaran fisis terkait.\n\n📐 Persamaan Kunci\n(Sambungan ke AI terputus — mohon lengkapi persamaan matematis utama topik ini secara manual, beserta arti tiap variabelnya dalam bahasa sederhana dan satu contoh perhitungan, sebelum aktivitas diterbitkan.)\n\n🔗 Analogi Sehari-hari\nBayangkan fenomena "${topik_fisika}" ini seperti kejadian yang sering ditemui di sekitar ${wilayah_sekolah || 'lingkunganmu'} — cobalah kaitkan dengan kegiatan nelayan, petani, atau kehidupan sehari-hari setempat.`;
+      ? `Draf materi "${topik_fisika}" belum tersedia karena AI terputus. Isi manual definisi yang akurat dan satu analogi yang relevan. Dalam Inquiry Learning, jangan beri rumus sebelum siswa menyelidiki hubungan antarbesaran.`
+      : `Draf materi "${topik_fisika}" belum tersedia karena AI terputus. Isi manual definisi, persamaan beserta satuan tiap variabel, satu contoh hitung, dan analogi yang sesuai. Periksa sebelum menerbitkan.`;
     return res.status(200).json({ materi: materiCadangan, tanpa_persamaan: tanpaPersamaan, source: "local-fallback-mode" });
   }
 };
@@ -519,6 +551,9 @@ exports.generateMateriKelas = async (req, res) => {
   if (!topik_fisika || !topik_fisika.trim()) {
     return res.status(400).json({ message: 'Isi Topik Fisika terlebih dahulu sebelum generate materi.' });
   }
+  if (tipe_materi !== 'teks') {
+    return res.status(400).json({ message: 'Generator ini hanya untuk materi teks. Video dan tautan memerlukan URL yang dipilih guru.' });
+  }
 
   const daftarDimensi = Array.isArray(dimensi_disasar) && dimensi_disasar.length > 0
     ? dimensi_disasar.join(', ')
@@ -530,12 +565,12 @@ exports.generateMateriKelas = async (req, res) => {
         (termasuk guru non-Fisika/out-of-field) di wilayah 3T menyiapkan materi ajar Fisika dengan cepat.
         Berdasarkan topik Fisika, jenis materi, wilayah sekolah, dan dimensi MLI yang disasar, buat SATU paket
         berisi DUA bagian dalam satu field "konten":
-        (a) materi ajar Bahasa Indonesia, jelas dan ringkas (3-5 paragraf pendek), mengaitkan konsep Fisika
+        (a) materi ajar Bahasa Indonesia, jelas dan ringkas (2-3 paragraf pendek), mengaitkan konsep Fisika
             dengan kehidupan/lingkungan lokal wilayah sekolah tersebut;
-        (b) di baris baru setelahnya, bagian berjudul persis "🧪 Saran Eksperimen Sederhana:" berisi 3-5 langkah
-            eksperimen bernomor, HANYA memakai bahan yang mudah ditemukan di desa/pesisir (botol bekas, bambu,
-            batu, tali, air, dsb), bahasa tidak teknis, cocok untuk guru yang bukan lulusan Fisika dan tanpa
-            laboratorium standar.
+        (b) di baris baru setelahnya, bagian berjudul "Saran eksperimen sederhana:" berisi 2-4 langkah
+            bernomor. Pilih bahan yang secara fisis relevan dengan topik, tersedia di sekitar sekolah, dan aman.
+            Jangan memakai satu pola percobaan untuk semua topik. Jika tidak ada eksperimen sederhana yang
+            layak, berikan kegiatan observasi yang jujur tanpa mengklaim telah menguji konsep.
         Buat juga "judul" materi yang menarik & kontekstual (maks 10 kata).
         ${ATURAN_MATEMATIKA}`,
       {
@@ -555,14 +590,19 @@ Dimensi MLI yang disasar: ${daftarDimensi}`;
 
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
-    const parsed = JSON.parse(text);
+    const parsed = bacaFields(text, ['judul', 'konten']);
+    const langkah = parsed.konten.match(/^\s*[1-4][.)]\s+\S/gm) || [];
+    if (parsed.judul.length > 100 || parsed.konten.length > 3000 ||
+        !/saran eksperimen sederhana:/i.test(parsed.konten) || langkah.length < 2 || langkah.length > 4) {
+      throw new Error('Materi AI tidak memuat paket ringkas dan langkah kegiatan yang diminta.');
+    }
 
     return res.status(200).json({ judul: parsed.judul, konten: parsed.konten, source: "gemini-live" });
   } catch (error) {
     console.warn("⚠️ Gemini API Error (generate-materi-kelas):", error.message, "— Mode cadangan aktif.");
     return res.status(200).json({
       judul: `Materi: ${topik_fisika}`,
-      konten: `Materi ajar tentang "${topik_fisika}" belum bisa disusun otomatis (koneksi ke AI terputus). Silakan isi manual dahulu, atau coba klik tombol generate lagi sebentar lagi.\n\n🧪 Saran Eksperimen Sederhana:\n1. Gunakan bahan sederhana yang tersedia di sekitar sekolah (botol bekas, air, bambu, dsb) untuk mendemonstrasikan konsep ini secara langsung kepada siswa.`,
+      konten: `AI tidak tersedia. Isi manual materi "${topik_fisika}" dengan konsep dan contoh yang sudah diperiksa.\n\nSaran eksperimen sederhana:\n[Isi manual langkah pengamatan yang aman dan relevan; periksa sebelum menyimpan.]`,
       source: "local-fallback-mode"
     });
   }

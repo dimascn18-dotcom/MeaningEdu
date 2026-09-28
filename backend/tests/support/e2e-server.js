@@ -58,7 +58,7 @@ gemini.GoogleGenerativeAI = class FakeGoogleGenerativeAI {
         } else {
           content = JSON.stringify({
             judul: 'Energi dan Massa',
-            konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\n🧪 Saran Eksperimen Sederhana:\n1. Bandingkan perubahan energi pada benda di sekitar.'
+            konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\nSaran eksperimen sederhana:\n1. Amati benda yang bergerak.\n2. Catat dan bandingkan hasil pengamatan.'
           });
         }
         return {
