@@ -90,22 +90,38 @@ test('simplifier menjaga rumus dan mengembalikan teks asli bila token matematika
   assert.equal(invalid.body.teks_sederhana, teks_asli);
 });
 
-test('materi Inquiry melarang rumus dan mode gagal memberi kerangka manual', async () => {
+test('Inquiry membolehkan rumus prasyarat, menahan hubungan target lewat instruksi, dan memberi fallback jujur', async () => {
   nextAnswer = new Error('provider unavailable');
   const inquiry = await invoke(ai.generateMateriTeks, {
-    topik_fisika: 'Tekanan', template_pedagogis: 'Inquiry Learning'
+    topik_fisika: 'Tekanan', template_pedagogis: 'Inquiry Learning',
+    pertanyaan_pemantik: 'Bagaimana gaya dan luas memengaruhi tekanan?'
   });
   assert.equal(inquiry.body.source, 'local-fallback-mode');
-  assert.equal(inquiry.body.tanpa_persamaan, true);
+  assert.equal(inquiry.body.tanpa_persamaan, false);
+  assert.equal(inquiry.body.inquiry_target_discovery, true);
   assert.match(inquiry.body.materi, /Isi manual/);
-  assert.match(lastCall.options.systemInstruction, /JANGAN menuliskan persamaan matematis/);
+  assert.match(lastCall.options.systemInstruction, /persamaan prasyarat/);
+  assert.match(lastCall.options.systemInstruction, /JANGAN berikan persamaan atau/);
+  assert.match(lastCall.prompt, /Bagaimana gaya dan luas memengaruhi tekanan/);
   assert.match(lastCall.options.systemInstruction, /160-260 kata/);
 
-  nextAnswer = 'Tekanan dapat ditulis \\(P = F/A\\).';
+  nextAnswer = 'Luas bidang dapat dihitung dengan \\(A = p \\times l\\). Amati hubungan gaya, luas, dan tekanan.';
   const formula = await invoke(ai.generateMateriTeks, {
-    topik_fisika: 'Tekanan', template_pedagogis: 'Inquiry Learning'
+    topik_fisika: 'Tekanan', template_pedagogis: 'Inquiry Learning',
+    pertanyaan_pemantik: 'Bagaimana gaya dan luas memengaruhi tekanan?'
   });
-  assert.equal(formula.body.source, 'local-fallback-mode');
+  assert.equal(formula.body.source, 'gemini-live');
+  assert.match(formula.body.materi, /A = p/);
+});
+
+test('pilihan simulasi tidak diubah menjadi klaim sekolah nyata pada generator konteks', async () => {
+  nextAnswer = new Error('provider unavailable');
+  const wilayah_sekolah = 'Simulasi / tidak mewakili sekolah tertentu';
+  const fallback = await invoke(ai.generateLocalContext, { topik_fisika: 'Bunyi', wilayah_sekolah });
+  assert.equal(fallback.body.source, 'local-fallback-mode');
+  assert.doesNotMatch(fallback.body.deskripsi, /di wilayah|sekitar sekolah|setempat/);
+  assert.match(lastCall.prompt, /tidak mewakili sekolah atau wilayah nyata/);
+  assert.match(lastCall.options.systemInstruction, /jangan menyatakan peserta berasal dari sekolah/);
 });
 
 test('co-pilot tidak mengirim eksperimen parsial sebagai hasil AI', async () => {

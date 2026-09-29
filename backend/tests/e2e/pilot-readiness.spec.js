@@ -65,7 +65,7 @@ test('adult simulation registration requires explicit consent and records the po
   await page.goto('/register.html');
   await page.getByLabel('Nama atau nama samaran').fill('Peserta Dewasa');
   await page.getByLabel('Email',{exact:true}).fill('adult-e2e@example.test');
-  await page.getByLabel('Wilayah Sekolah').selectOption('Perkotaan / Peri-urban');
+  await page.getByLabel('Wilayah sekolah atau simulasi').selectOption('Simulasi / tidak mewakili sekolah tertentu');
   await page.getByLabel('Kata Sandi').fill('password-kuat');
   await page.getByRole('button',{name:'Saya Siswa'}).click();
   await page.getByRole('button',{name:'Buat Akun'}).click();
@@ -75,6 +75,24 @@ test('adult simulation registration requires explicit consent and records the po
   await page.getByRole('button',{name:'Buat Akun'}).click();
   await expect(page).toHaveURL(/login.html/);
   await expect(page.locator('#authStatus')).toContainText('Registrasi berhasil');
+});
+
+test('builder mengirim target Inquiry kepada generator dan menjelaskan peran persamaan prasyarat', async ({page}) => {
+  await loginFixture(page);
+  await page.goto('/dashboard-guru.html');
+  await page.locator('#toggleBuilder').click();
+  await page.locator('#bJudul').fill('Tekanan');
+  await page.locator('#bPertanyaan').fill('Bagaimana gaya dan luas memengaruhi tekanan?');
+  await expect(page.locator('#materiDepthHint')).toContainText('persamaan prasyarat');
+  await page.route('**/ai/generate-materi-teks', route => route.fulfill({
+    status: 200, json: { materi: 'Luas bidang dapat dihitung dengan \\(A = p \\times l\\). Selidiki pengaruhnya.', source: 'gemini-live' }
+  }));
+  const requestPromise = page.waitForRequest(request => request.url().endsWith('/ai/generate-materi-teks'));
+  await page.locator('#btnMateriGenerator').click();
+  const body = (await requestPromise).postDataJSON();
+  expect(body.pertanyaan_pemantik).toBe('Bagaimana gaya dan luas memengaruhi tekanan?');
+  expect(body.template_pedagogis).toBe('Inquiry Learning');
+  await expect(page.locator('#bJalurTeks')).toHaveValue(/A = p/);
 });
 
 test('admin UI retries failed loading and approves a teacher without a dialog', async ({page}) => {

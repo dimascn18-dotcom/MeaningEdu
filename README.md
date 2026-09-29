@@ -10,7 +10,9 @@ MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, 
 - [Hasil verifikasi implementasi 1.0](docs/VERIFICATION_1.0.md)
 - [Informasi dan persetujuan peserta simulasi](docs/PILOT_PARTICIPANT_INFO.md)
 
-Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Formula MLI dan API pedagogis tidak diubah. Kandidat sesudah prerelease menambah migration `0011_pilot_consent.sql` untuk mencatat versi dan waktu persetujuan akun baru pada simulasi dewasa. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf refleksi tersimpan lokal per akun dan aktivitas saat diisi; setelah reload luring, daftar aktivitas dari API tetap memerlukan koneksi agar draf dapat dibuka kembali.
+Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Formula MLI dan rute pedagogis inti tetap; generator Inquiry kini menerima konteks pertanyaan pemantik opsional. Kandidat sesudah prerelease menambah migration `0011_pilot_consent.sql` untuk mencatat versi dan waktu persetujuan akun baru pada simulasi dewasa. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf refleksi tersimpan lokal per akun dan aktivitas saat diisi; setelah reload luring, daftar aktivitas dari API tetap memerlukan koneksi agar draf dapat dibuka kembali.
+
+PR #7 adalah kandidat yang belum digabungkan ke `main`; prerelease `v1.0.0-pilot` tetap menunjuk baseline lama. Simulasi peserta dewasa memakai database pilot baru tanpa akun legacy, dengan pilihan wilayah netral bila tidak mewakili sekolah. Materi Inquiry dapat memuat persamaan prasyarat yang tidak membocorkan hubungan target. Kualitas materi tetap memerlukan pemeriksaan guru.
 
 ## Arsitektur aktif
 
@@ -131,7 +133,7 @@ Skrip melakukan upsert berdasarkan email dan tidak mencetak kata sandi.
 4. Admin menyetujui atau menolak permohonan.
 5. Hanya akun berstatus `aktif` yang melewati middleware autentikasi.
 
-Akun siswa langsung aktif. Akun lama diaktifkan saat migrasi agar pengguna yang sudah ada tidak terkunci.
+Akun siswa baru langsung aktif setelah persetujuan simulasi dewasa. Migrasi historis mengaktifkan akun lama, tetapi akun tersebut tidak memiliki catatan consent dan tidak boleh dipakai untuk simulasi ini. Gunakan database pilot baru dan kosong sesuai `docs/PILOT_RUNBOOK.md`; jangan menyamakan status akun `aktif` dengan persetujuan pilot.
 
 ## Persamaan Fisika
 

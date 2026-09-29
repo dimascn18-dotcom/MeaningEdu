@@ -2,7 +2,7 @@
 
 ## Guru
 
-Daftar sebagai guru, lalu tunggu persetujuan admin. Setelah masuk, buat kelas dan bagikan kode kelas kepada siswa. Pilih kelas lalu **Rancang Aktivitas Baru**. Isi judul, template, minimal dua jalur belajar, dan pertanyaan pemantik; publikasikan. Materi kelas dan PDF berada di bagian bawah dashboard. Bantuan AI bersifat opsional dan hasilnya perlu Anda periksa sebelum disimpan.
+Pada simulasi dewasa, pilih **Simulasi / tidak mewakili sekolah tertentu** jika Anda tidak mewakili sekolah nyata. Daftar sebagai guru, lalu tunggu persetujuan admin. Setelah masuk, buat kelas dan bagikan kode kelas kepada siswa. Pilih kelas lalu **Rancang Aktivitas Baru**. Isi judul, template, minimal dua jalur belajar, dan pertanyaan pemantik; publikasikan. Untuk Inquiry, rumus prasyarat boleh diberikan bila diperlukan, tetapi hubungan target penemuan perlu dibiarkan untuk diselidiki siswa. Materi kelas dan PDF berada di bagian bawah dashboard. Bantuan AI bersifat opsional dan hasilnya perlu Anda periksa sebelum disimpan.
 
 Dashboard dibaca berurutan: **Kondisi kelas → Perhatian → Interpretasi → Tindakan → Detail**. Cakupan jurnal lengkap ditampilkan bersama MLI. “Belum tersedia” bukan skor nol. Periksa **Lihat data & bukti** pada tabel sebelum menyimpulkan keadaan siswa. Tabel dapat digeser mendatar pada ponsel; tombol judul kolom mengurutkan data dan bisa diaktifkan lewat keyboard.
 

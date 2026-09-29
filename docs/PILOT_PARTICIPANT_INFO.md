@@ -27,4 +27,6 @@ MLI adalah indikator prototipe pembelajaran, bukan nilai akademik, diagnosis, at
 
 Pada pendaftaran, peserta dewasa membaca halaman informasi peserta, mencentang pernyataan memahami pengolahan data dan pengiriman teks ke Gemini, serta menyatakan berusia setidaknya 18 tahun. Server mencatat versi informasi dan waktu persetujuan bersama akun baru. Kotak tidak dicentang otomatis. Akun yang dibuat sebelum mekanisme ini memerlukan persetujuan terpisah sebelum diikutkan dalam simulasi. Pengelola menyimpan catatan rekrutmen dan permintaan berhenti di luar jawaban jurnal.
 
+Simulasi memakai database pilot baru tanpa akun peserta lama. Peserta yang tidak mewakili sekolah memilih wilayah **Simulasi / tidak mewakili sekolah tertentu**. Ini tidak menyatakan bahwa mereka berasal dari suatu sekolah atau wilayah 3T.
+
 **Keputusan yang belum selesai untuk siswa 12–18 tahun:** izin sekolah/institusi, dasar dan proses persetujuan wali, persetujuan siswa, materi pemberitahuan yang sesuai usia, serta prosedur penyimpanan bukti persetujuan. Jangan mengundang atau memproses data siswa di bawah 18 tahun sampai keputusan itu disetujui dan alurnya diimplementasikan. Checkbox dewasa di aplikasi tidak menggantikan persetujuan wali.

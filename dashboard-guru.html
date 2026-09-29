@@ -505,9 +505,9 @@
         const hint = document.getElementById('materiDepthHint');
         if (!hint) return;
         if (nilai === 'Inquiry Learning') {
-          hint.textContent = '🧠 Mode Inquiry: materi akan TANPA persamaan matematis — siswa menemukan sendiri lewat eksperimen.';
+          hint.textContent = 'Mode Inquiry: persamaan prasyarat boleh digunakan bila perlu; jangan bocorkan hubungan target penemuan. Periksa draf AI sebelum terbit.';
         } else {
-          hint.textContent = '🧠 Materi akan menyertakan dasar persamaan matematis, dijelaskan sederhana untuk guru non-Fisika.';
+          hint.textContent = 'Materi dapat menyertakan persamaan dasar beserta arti variabelnya. Periksa ketepatannya sebelum terbit.';
         }
       }
       document.getElementById('bTemplate').addEventListener('change', updateMateriDepthHint);
@@ -771,7 +771,8 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
         try {
           const res = await fetchWithAuth('/ai/generate-materi-teks', {
             method: 'POST',
-            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis })
+            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis,
+              pertanyaan_pemantik: document.getElementById('bPertanyaan').value.trim() })
           });
           const data = await res.json();
           if (res.ok) {
@@ -863,7 +864,8 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
               topik_fisika: judul,
               wilayah_sekolah: user.wilayah_sekolah,
               template_pedagogis: document.getElementById('bTemplate').value,
-              konteks_materi: document.getElementById('bJalurTeks').value.trim()
+              konteks_materi: document.getElementById('bJalurTeks').value.trim(),
+              pertanyaan_pemantik: document.getElementById('bPertanyaan').value.trim()
             })
           });
           const data = await res.json();
