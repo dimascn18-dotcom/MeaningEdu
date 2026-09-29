@@ -40,6 +40,8 @@ Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest dan font 
 
 ## Bukti manual dan provider sebelum mulai
 
+Gunakan [checklist rehearsal langkah demi langkah](RELEASE_REHEARSAL_CHECKLIST.md) pada deployment kandidat dan simpan hasilnya bersama SHA.
+
 Isi perangkat/browser, tanggal, penanggung jawab, hasil, dan tautan bukti untuk setiap baris. **Belum diuji** tidak boleh ditandai lulus berdasarkan axe/CI.
 
 | Pemeriksaan | Bukti yang harus dicatat | Hasil |

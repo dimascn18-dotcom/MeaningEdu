@@ -9,6 +9,10 @@ MeaningEdu adalah PWA pembelajaran Fisika yang menghubungkan aktivitas belajar, 
 - [Kontrak UI, responsive, aksesibilitas, dan regresi 1.0](docs/PRODUCT_UI_1.0.md)
 - [Hasil verifikasi implementasi 1.0](docs/VERIFICATION_1.0.md)
 - [Informasi dan persetujuan peserta simulasi](docs/PILOT_PARTICIPANT_INFO.md)
+- [Laporan pra-merge kandidat final](docs/MeaningEdu10_Final_PreMerge_Report.md)
+- [Status keputusan release dan gate yang tersisa](docs/MeaningEdu10_Final_Release_Report.md)
+- [Checklist rehearsal provider dan perangkat nyata](docs/RELEASE_REHEARSAL_CHECKLIST.md)
+- [Catatan release candidate, masih draf](docs/RELEASE_NOTES_1.0_RC_DRAFT.md)
 
 Tahap 1.0 mengubah hierarki/antarmuka, states, aksesibilitas, dan render matematika. Formula MLI dan rute pedagogis inti tetap; generator Inquiry kini menerima konteks pertanyaan pemantik opsional. Kandidat sesudah prerelease menambah migration `0011_pilot_consent.sql` untuk mencatat versi dan waktu persetujuan akun baru pada simulasi dewasa. Dukungan luring bersifat terbatas: antrean jurnal akhir dan shell aplikasi; data API privat, AI, dan PDF tetap memerlukan internet. Draf refleksi tersimpan lokal per akun dan aktivitas saat diisi; setelah reload luring, daftar aktivitas dari API tetap memerlukan koneksi agar draf dapat dibuka kembali.
 
