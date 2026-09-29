@@ -97,6 +97,28 @@ test.describe.serial('MeaningEdu critical browser flows', () => {
     expect(result.status).toBe(403);
     expect(result.body.message).toContain('tidak terdaftar');
   });
+
+  test('mode cadangan AI tidak mengisi materi dan tombol hanya muncul untuk teks', async ({ page }) => {
+    await signIn(page, users.guru);
+    await page.goto('/dashboard-guru.html');
+    await page.locator('#toggleMateriForm').click();
+    await page.locator('#mTopik').fill('Bunyi');
+    await page.route('**/ai/generate-materi', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ source: 'local-fallback-mode', judul: 'Draf semu', konten: '[Isi manual]' })
+    }));
+    await page.locator('#btnGenerateMateri').click();
+    await expect(page.locator('#materiStatus')).toContainText('AI tidak tersedia');
+    await expect(page.locator('#mJudul')).toHaveValue('');
+    await expect(page.locator('#mKonten')).toHaveValue('');
+    for (const tipe of ['video', 'tautan', 'pdf']) {
+      await page.locator('#mTipe').selectOption(tipe);
+      await expect(page.locator('#btnGenerateMateri')).toBeHidden();
+    }
+    await page.locator('#mTipe').selectOption('teks');
+    await expect(page.locator('#btnGenerateMateri')).toBeVisible();
+  });
 });
 
 test('MeaningEdu 03: refleksi, intervensi, dan rekomendasi dengan pilihan siswa', async ({ page, browser }) => {

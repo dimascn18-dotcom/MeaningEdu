@@ -169,6 +169,7 @@
             <input type="text" id="inputTopikKelas" placeholder="Gelombang Mekanik" />
             <button class="btn-submit-mini" id="btnSimpanKelas">Simpan Kelas</button>
           </div>
+          <p id="classStatus" aria-live="polite"></p>
         </div>
       </aside>
 
@@ -239,6 +240,7 @@
           </div>
           <div id="trenArea"><p class="empty-hint">Pilih kelas untuk melihat tren.</p></div>
         </div>
+        <p id="builderStatus" aria-live="polite"></p>
         <div class="panel builder-panel" id="builderPanel" style="display:none;">
           <h2>Rancang aktivitas</h2>
           <div class="form-mini" style="border:none; padding-top:0; margin-top:0;">
@@ -273,14 +275,14 @@
             <textarea id="bPertanyaan" rows="2" placeholder="Pertanyaan pemicu rasa ingin tahu siswa..."></textarea>
 
             <div class="builder-tools">
-              <button class="ai-tool-btn" id="btnMateriGenerator">🧠 AI Materi Generator: Isi Otomatis</button>
-              <button class="ai-tool-btn" id="btnLocalContext">🌿 AI Local Context: Isi Pertanyaan Pemantik</button>
-              <button class="ai-tool-btn" id="btnValidasiAI">🤖 Validasi AI</button>
-              <button class="ai-tool-btn" id="btnCopilot">🧪 AI Teaching Co-Pilot: Rancang Eksperimen</button>
+              <button class="ai-tool-btn" id="btnMateriGenerator">AI Materi Generator: Isi Otomatis</button>
+              <button class="ai-tool-btn" id="btnLocalContext">AI Local Context: Isi Pertanyaan Pemantik</button>
+              <button class="ai-tool-btn" id="btnValidasiAI">Validasi AI</button>
+              <button class="ai-tool-btn" id="btnCopilot">AI Teaching Co-Pilot: Rancang Eksperimen</button>
             </div>
 
             <div class="ai-suggestion-box" id="boxValidasi"><strong>Saran Relevansi Kontekstual</strong><span id="teksValidasi"></span></div>
-            <div class="ai-suggestion-box" id="boxCopilot"><strong>🔒 Panduan Guru (khusus guru, tidak dikirim ke siswa)</strong><span id="teksCopilot"></span></div>
+            <div class="ai-suggestion-box" id="boxCopilot"><strong>Panduan Guru (khusus guru, tidak dikirim ke siswa)</strong><span id="teksCopilot"></span></div>
 
             <button class="btn-submit-mini" id="btnPublishAktivitas">Publish Aktivitas</button>
           </div>
@@ -291,6 +293,7 @@
     <button class="link-btn" id="toggleMateriForm">+ Unggah Materi Baru</button>
   </div>
   <p style="font-size:0.8rem; color:var(--text-lt); margin:8px 0 0;">Label topik &amp; dimensi MLI membantu Anda — terutama guru lintas bidang — tahu aspek psikologis apa yang sedang dilatih lewat materi ini.</p>
+  <p id="materiStatus" aria-live="polite"></p>
 
   <div class="form-mini" id="formMateri" style="display:none;">
     <label for="mJudul">Judul Materi</label>
@@ -299,7 +302,7 @@
     <label for="mTopik">Topik Fisika</label>
     <input type="text" id="mTopik" placeholder="mis. Tekanan Hidrostatis" />
 
-    <button type="button" class="ai-tool-btn" id="btnGenerateMateri" style="margin:4px 0 12px;">✨ Generate Materi + Eksperimen dengan AI</button>
+    <button type="button" class="ai-tool-btn" id="btnGenerateMateri" style="margin:4px 0 12px;">Generate Materi + Eksperimen dengan AI</button>
     <p style="font-size:0.76rem;color:var(--text-lt);margin:-8px 0 12px;">Isi Topik Fisika & centang dimensi dulu, lalu klik tombol ini. Hasil AI tetap bisa Anda edit sebelum disimpan.</p>
 
     <label for="mTipe">Jenis Materi</label>
@@ -358,6 +361,7 @@
       let aktivitasAktifId = null;
       let aktivitasAktifJudul = null;
       let kelasActivities = [];
+      const feedback = (id, message, kind) => MeaningEduUI.notice(document.getElementById(id), message, kind);
       function intervensiTargetOptions() {
         const select = document.getElementById('interventionTarget');
         select.replaceChildren(new Option('Belum dipilih', ''));
@@ -413,7 +417,7 @@
             const button = document.createElement('button');
             button.type = 'button'; button.textContent = 'Bandingkan observasi';
             button.addEventListener('click', async () => {
-              if (!targetSelect.value) { alert('Pilih aktivitas tindak lanjut.'); return; }
+              if (!targetSelect.value) { feedback('interventionStatus', 'Pilih aktivitas tindak lanjut.'); return; }
               button.disabled = true;
               try {
                 const result = await fetchWithAuth(`/pedagogy/interventions/${item.id}/follow-up`, {
@@ -421,7 +425,7 @@
                 });
                 if (!result.ok) throw new Error((await result.json()).message || 'Gagal membandingkan.');
                 muatIntervensi();
-              } catch (error) { alert(error.message); button.disabled = false; }
+              } catch (error) { feedback('interventionStatus', error.message); button.disabled = false; }
             });
             box.append(targetSelect, followNote, button);
             history.appendChild(box);
@@ -501,9 +505,9 @@
         const hint = document.getElementById('materiDepthHint');
         if (!hint) return;
         if (nilai === 'Inquiry Learning') {
-          hint.textContent = '🧠 Mode Inquiry: materi akan TANPA persamaan matematis — siswa menemukan sendiri lewat eksperimen.';
+          hint.textContent = 'Mode Inquiry: persamaan prasyarat boleh digunakan bila perlu; jangan bocorkan hubungan target penemuan. Periksa draf AI sebelum terbit.';
         } else {
-          hint.textContent = '🧠 Materi akan menyertakan dasar persamaan matematis, dijelaskan sederhana untuk guru non-Fisika.';
+          hint.textContent = 'Materi dapat menyertakan persamaan dasar beserta arti variabelnya. Periksa ketepatannya sebelum terbit.';
         }
       }
       document.getElementById('bTemplate').addEventListener('change', updateMateriDepthHint);
@@ -523,7 +527,7 @@ document.getElementById('mTipe').addEventListener('change', function () {
   const modePdf = this.value === 'pdf';
   document.getElementById('mKontenGroup').style.display = modePdf ? 'none' : 'block';
   document.getElementById('mPdfGroup').style.display = modePdf ? 'block' : 'none';
-  document.getElementById('btnGenerateMateri').style.display = modePdf ? 'none' : 'inline-flex';
+  document.getElementById('btnGenerateMateri').style.display = this.value === 'teks' ? 'inline-flex' : 'none';
 });
 
 document.getElementById('btnGenerateMateri').addEventListener('click', async () => {
@@ -531,10 +535,11 @@ document.getElementById('btnGenerateMateri').addEventListener('click', async () 
   const tipe_materi = document.getElementById('mTipe').value;
   const dimensi_disasar = Array.from(document.querySelectorAll('.dimensi-check-item input:checked')).map(i => i.value);
 
-  if (!topik_fisika) { alert('Isi Topik Fisika terlebih dahulu.'); return; }
+  if (!topik_fisika) { feedback('materiStatus', 'Isi Topik Fisika terlebih dahulu.'); return; }
+  if (tipe_materi !== 'teks') { feedback('materiStatus', 'Generator hanya tersedia untuk materi teks. Masukkan URL video atau tautan secara manual.'); return; }
 
   const btn = document.getElementById('btnGenerateMateri');
-  btn.disabled = true; btn.textContent = '✨ AI sedang menyusun materi...';
+  btn.disabled = true; btn.textContent = 'AI sedang menyusun materi...';
   try {
     const res = await fetchWithAuth('/ai/generate-materi', {
       method: 'POST',
@@ -542,23 +547,29 @@ document.getElementById('btnGenerateMateri').addEventListener('click', async () 
     });
     const data = await res.json();
     if (res.ok) {
-      document.getElementById('mJudul').value = data.judul || '';
-      document.getElementById('mKonten').value = data.konten || '';
+      if (document.getElementById('mTipe').value !== 'teks') {
+        feedback('materiStatus', 'Jenis materi berubah. Hasil teks tidak dimasukkan ke isian URL.');
+        return;
+      }
       if (data.source === 'local-fallback-mode') {
-        alert('AI utama sedang tidak bisa diakses — draf ini dibuat mode cadangan. Silakan periksa & sesuaikan sebelum disimpan.');
+        feedback('materiStatus', 'AI tidak tersedia. Isi judul dan materi secara manual sebelum disimpan.');
+      } else {
+        document.getElementById('mJudul').value = data.judul || '';
+        document.getElementById('mKonten').value = data.konten || '';
+        feedback('materiStatus', 'Draf AI dibuat. Periksa ketepatan konsep dan langkah sebelum disimpan.', 'success');
       }
     } else {
-      alert('Gagal generate: ' + data.message);
+      feedback('materiStatus', 'Gagal generate: ' + data.message);
     }
   } catch (err) {
     console.error(err);
-    alert('Koneksi ke AI terputus.');
+    feedback('materiStatus', 'Koneksi ke AI terputus.');
   } finally {
-    btn.disabled = false; btn.textContent = '✨ Generate Materi + Eksperimen dengan AI';
+    btn.disabled = false; btn.textContent = 'Generate Materi + Eksperimen dengan AI';
   }
 });
 document.getElementById('btnSimpanMateri').addEventListener('click', async () => {
-  if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
+  if (!kelasAktifId) { feedback('materiStatus', 'Pilih kelas terlebih dahulu.'); return; }
   const judul = document.getElementById('mJudul').value.trim();
   const topik_fisika = document.getElementById('mTopik').value.trim();
   const tipe_materi = document.getElementById('mTipe').value;
@@ -566,14 +577,14 @@ document.getElementById('btnSimpanMateri').addEventListener('click', async () =>
   const pdfFile = document.getElementById('mPdfFile').files[0];
   const dimensi_disasar = Array.from(document.querySelectorAll('.dimensi-check-item input:checked')).map(i => i.value);
 
-  if (!judul || !topik_fisika) { alert('Judul dan topik Fisika wajib diisi.'); return; }
-  if (dimensi_disasar.length === 0) { alert('Pilih minimal 1 dimensi MLI yang disasar materi ini.'); return; }
-  if (tipe_materi === 'pdf' && !pdfFile) { alert('Pilih file PDF terlebih dahulu.'); return; }
+  if (!judul || !topik_fisika) { feedback('materiStatus', 'Judul dan topik Fisika wajib diisi.'); return; }
+  if (dimensi_disasar.length === 0) { feedback('materiStatus', 'Pilih minimal 1 dimensi MLI yang disasar materi ini.'); return; }
+  if (tipe_materi === 'pdf' && !pdfFile) { feedback('materiStatus', 'Pilih file PDF terlebih dahulu.'); return; }
   if (tipe_materi === 'pdf' && (pdfFile.type !== 'application/pdf' || !pdfFile.name.toLowerCase().endsWith('.pdf'))) {
-    alert('File harus berformat PDF.'); return;
+    feedback('materiStatus', 'File harus berformat PDF.'); return;
   }
   if (tipe_materi === 'pdf' && pdfFile.size > 10 * 1024 * 1024) {
-    alert('Ukuran PDF maksimal 10 MB.'); return;
+    feedback('materiStatus', 'Ukuran PDF maksimal 10 MB.'); return;
   }
 
   const btn = document.getElementById('btnSimpanMateri');
@@ -637,12 +648,13 @@ document.getElementById('btnSimpanMateri').addEventListener('click', async () =>
       document.querySelectorAll('.dimensi-check-item input').forEach(i => i.checked = false);
       document.getElementById('formMateri').style.display = 'none';
       muatMateri(kelasAktifId);
+      feedback('materiStatus', 'Materi berhasil disimpan.', 'success');
     } else {
-      alert('Gagal: ' + data.message);
+      feedback('materiStatus', 'Gagal: ' + data.message);
     }
   } catch (err) {
     console.error(err);
-    alert(err.message || 'Terjadi kesalahan koneksi ke server.');
+    feedback('materiStatus', err.message || 'Terjadi kesalahan koneksi ke server.');
   } finally {
     btn.disabled = false; btn.textContent = 'Simpan Materi';
   }
@@ -699,7 +711,7 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
     if (tab) tab.location.href = data.url; else window.location.href = data.url;
   } catch (error) {
     if (tab) tab.close();
-    alert(error.message);
+    feedback('materiStatus', error.message);
   } finally {
     button.disabled = false;
   }
@@ -714,7 +726,7 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
       document.getElementById('btnSimpanKelas').addEventListener('click', async () => {
         const nama_kelas = document.getElementById('inputNamaKelas').value.trim();
         const topik_fisika = document.getElementById('inputTopikKelas').value.trim();
-        if (!nama_kelas) { alert('Nama kelas wajib diisi.'); return; }
+        if (!nama_kelas) { feedback('classStatus', 'Nama kelas wajib diisi.'); return; }
 
         const btn = document.getElementById('btnSimpanKelas');
         btn.disabled = true; btn.textContent = 'Menyimpan...';
@@ -729,12 +741,13 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
             document.getElementById('inputTopikKelas').value = '';
             document.getElementById('formBuatKelas').style.display = 'none';
             muatKelas();
+            feedback('classStatus', 'Kelas berhasil dibuat.', 'success');
           } else {
-            alert('Gagal membuat kelas: ' + data.message);
+            feedback('classStatus', 'Gagal membuat kelas: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Terjadi kesalahan koneksi ke server.');
+          feedback('classStatus', 'Terjadi kesalahan koneksi ke server.');
         } finally {
           btn.disabled = false; btn.textContent = 'Simpan Kelas';
         }
@@ -751,35 +764,39 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
       // AI Materi Generator — mengisi Jalur 1 (Materi Teks: definisi, persamaan, analogi)
       document.getElementById('btnMateriGenerator').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
-        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        if (!judul) { feedback('builderStatus', 'Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
         const template_pedagogis = document.getElementById('bTemplate').value;
         const btn = document.getElementById('btnMateriGenerator');
-        btn.disabled = true; btn.textContent = '🧠 Menyusun materi...';
+        btn.disabled = true; btn.textContent = 'Menyusun materi...';
         try {
           const res = await fetchWithAuth('/ai/generate-materi-teks', {
             method: 'POST',
-            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis })
+            body: JSON.stringify({ topik_fisika: judul, wilayah_sekolah: user.wilayah_sekolah, template_pedagogis,
+              pertanyaan_pemantik: document.getElementById('bPertanyaan').value.trim() })
           });
           const data = await res.json();
           if (res.ok) {
-            document.getElementById('bJalurTeks').value = data.materi;
+            if (data.source !== 'local-fallback-mode') document.getElementById('bJalurTeks').value = data.materi;
+            feedback('builderStatus', data.source === 'local-fallback-mode'
+              ? 'AI tidak tersedia. Isi materi secara manual sebelum diterbitkan.'
+              : 'Draf materi dibuat. Periksa ketepatan konsep sebelum diterbitkan.', data.source === 'local-fallback-mode' ? 'error' : 'success');
           } else {
-            alert('Gagal: ' + data.message);
+            feedback('builderStatus', 'Gagal: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Koneksi ke AI terputus.');
+          feedback('builderStatus', 'Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🧠 AI Materi Generator: Isi Otomatis';
+          btn.disabled = false; btn.textContent = 'AI Materi Generator: Isi Otomatis';
         }
       });
 
       // AI Local Context & SDG Project Builder — sekarang HANYA mengisi Pertanyaan Pemantik
       document.getElementById('btnLocalContext').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
-        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        if (!judul) { feedback('builderStatus', 'Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
         const btn = document.getElementById('btnLocalContext');
-        btn.disabled = true; btn.textContent = '🌿 Menyusun pertanyaan...';
+        btn.disabled = true; btn.textContent = 'Menyusun pertanyaan...';
         try {
           const res = await fetchWithAuth('/ai/local-context', {
             method: 'POST',
@@ -787,15 +804,18 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
           });
           const data = await res.json();
           if (res.ok) {
-            document.getElementById('bPertanyaan').value = data.pertanyaan_pemantik;
+            if (data.source !== 'local-fallback-mode') document.getElementById('bPertanyaan').value = data.pertanyaan_pemantik;
+            feedback('builderStatus', data.source === 'local-fallback-mode'
+              ? 'AI tidak tersedia. Periksa atau tulis pertanyaan pemantik secara manual.'
+              : 'Pertanyaan pemantik dibuat. Periksa kesesuaiannya dengan aktivitas.', data.source === 'local-fallback-mode' ? 'error' : 'success');
           } else {
-            alert('Gagal: ' + data.message);
+            feedback('builderStatus', 'Gagal: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Koneksi ke AI terputus.');
+          feedback('builderStatus', 'Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🌿 AI Local Context: Isi Pertanyaan Pemantik';
+          btn.disabled = false; btn.textContent = 'AI Local Context: Isi Pertanyaan Pemantik';
         }
       });
 
@@ -804,10 +824,10 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
         const judul = document.getElementById('bJudul').value.trim();
         const deskripsi = document.getElementById('bJalurTeks').value.trim();
         const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
-        if (!judul && !deskripsi) { alert('Isi draf aktivitas terlebih dahulu sebelum divalidasi.'); return; }
+        if (!judul && !deskripsi) { feedback('builderStatus', 'Isi draf aktivitas terlebih dahulu sebelum divalidasi.'); return; }
 
         const btn = document.getElementById('btnValidasiAI');
-        btn.disabled = true; btn.textContent = '🤖 Menganalisis draf...';
+        btn.disabled = true; btn.textContent = 'Menganalisis draf...';
         try {
           const res = await fetchWithAuth('/ai/validate-activity', {
             method: 'POST',
@@ -817,23 +837,26 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
           if (res.ok) {
             document.getElementById('teksValidasi').textContent = data.saran;
             document.getElementById('boxValidasi').style.display = 'flex';
+            feedback('builderStatus', data.source === 'local-fallback-mode'
+              ? 'AI tidak tersedia. Saran ini bersifat umum; tinjau aktivitas secara manual.'
+              : 'Saran AI tersedia. Tinjau sebelum diterapkan.', data.source === 'local-fallback-mode' ? 'error' : 'success');
           } else {
-            alert('Gagal: ' + data.message);
+            feedback('builderStatus', 'Gagal: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Koneksi ke AI terputus.');
+          feedback('builderStatus', 'Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🤖 Validasi AI';
+          btn.disabled = false; btn.textContent = 'Validasi AI';
         }
       });
 
       // AI Teaching Co-Pilot — rancang eksperimen terstruktur (siswa) + panduan guru (khusus guru)
       document.getElementById('btnCopilot').addEventListener('click', async () => {
         const judul = document.getElementById('bJudul').value.trim();
-        if (!judul) { alert('Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
+        if (!judul) { feedback('builderStatus', 'Isi Judul/Topik Aktivitas terlebih dahulu.'); return; }
         const btn = document.getElementById('btnCopilot');
-        btn.disabled = true; btn.textContent = '🧪 Menyusun eksperimen...';
+        btn.disabled = true; btn.textContent = 'Menyusun eksperimen...';
         try {
           const res = await fetchWithAuth('/ai/teaching-copilot', {
             method: 'POST',
@@ -841,54 +864,60 @@ document.getElementById('daftarMateri').addEventListener('click', async event =>
               topik_fisika: judul,
               wilayah_sekolah: user.wilayah_sekolah,
               template_pedagogis: document.getElementById('bTemplate').value,
-              konteks_materi: document.getElementById('bJalurTeks').value.trim()
+              konteks_materi: document.getElementById('bJalurTeks').value.trim(),
+              pertanyaan_pemantik: document.getElementById('bPertanyaan').value.trim()
             })
           });
           const data = await res.json();
           if (res.ok) {
+            if (data.source === 'local-fallback-mode') {
+              feedback('builderStatus', 'AI tidak tersedia. Rancang eksperimen dan panduan guru secara manual sebelum diterbitkan.');
+              return;
+            }
             const teksEksperimen =
-`📌 JUDUL: ${data.judul}
+`JUDUL: ${data.judul}
 
-🎯 TUJUAN:
+TUJUAN:
 ${data.tujuan}
 
-❓ PERTANYAAN PENGGIRING HIPOTESIS:
+PERTANYAAN PENGGIRING HIPOTESIS:
 ${data.pertanyaan_hipotesis}
 
-🧰 ALAT & BAHAN:
+ALAT DAN BAHAN:
 ${data.alat_bahan}
 
-🪜 LANGKAH-LANGKAH:
+LANGKAH-LANGKAH:
 ${data.langkah_langkah}
 
-📊 PERTANYAAN PENGOLAHAN DATA:
+PERTANYAAN PENGOLAHAN DATA:
 ${data.pertanyaan_pengolahan_data}
 
-🔎 PERTANYAAN PENGGIRING KESIMPULAN:
+PERTANYAAN PENGGIRING KESIMPULAN:
 ${data.pertanyaan_kesimpulan}`;
 
             document.getElementById('bJalurEksperimen').value = teksEksperimen;
             document.getElementById('bCatatanGuru').value = data.panduan_guru;
             document.getElementById('teksCopilot').textContent = data.panduan_guru;
             document.getElementById('boxCopilot').style.display = 'flex';
+            feedback('builderStatus', 'Draf eksperimen dibuat. Periksa keamanan dan ketepatan Fisika sebelum diterbitkan.', 'success');
           } else {
-            alert('Gagal: ' + data.message);
+            feedback('builderStatus', 'Gagal: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Koneksi ke AI terputus.');
+          feedback('builderStatus', 'Koneksi ke AI terputus.');
         } finally {
-          btn.disabled = false; btn.textContent = '🧪 AI Teaching Co-Pilot: Rancang Eksperimen';
+          btn.disabled = false; btn.textContent = 'AI Teaching Co-Pilot: Rancang Eksperimen';
         }
       });
 
       // Publish aktivitas ke kelas aktif
       document.getElementById('btnPublishAktivitas').addEventListener('click', async () => {
-        if (!kelasAktifId) { alert('Pilih kelas terlebih dahulu.'); return; }
+        if (!kelasAktifId) { feedback('builderStatus', 'Pilih kelas terlebih dahulu.'); return; }
         const judul = document.getElementById('bJudul').value.trim();
         const template_pedagogis = document.getElementById('bTemplate').value;
         const pertanyaan_pemantik = document.getElementById('bPertanyaan').value.trim();
-        if (!judul) { alert('Judul aktivitas wajib diisi.'); return; }
+        if (!judul) { feedback('builderStatus', 'Judul aktivitas wajib diisi.'); return; }
 
         // Kumpulkan jalur belajar yang diisi (minimal 2 dari 3)
         const calonJalur = [
@@ -903,7 +932,7 @@ ${data.pertanyaan_kesimpulan}`;
         ];
         const jalur = calonJalur.filter(j => j.konten.length > 0);
         if (jalur.length < 2) {
-          alert('Isi minimal 2 dari 3 jalur belajar (Teks/Video/Eksperimen) agar siswa punya pilihan otonomi.');
+          feedback('builderStatus', 'Isi minimal 2 dari 3 jalur belajar (Teks/Video/Eksperimen) agar siswa punya pilihan otonomi.');
           return;
         }
         const deskripsi = jalur.find(j => j.tipe_jalur === 'teks')?.konten || jalur[0].konten;
@@ -917,7 +946,7 @@ ${data.pertanyaan_kesimpulan}`;
           });
           const data = await res.json();
           if (res.ok) {
-            alert('Aktivitas bermakna berhasil dirancang!');
+            feedback('builderStatus', 'Aktivitas bermakna berhasil dirancang!', 'success');
             document.getElementById('bJudul').value = '';
             document.getElementById('bJalurTeks').value = '';
             document.getElementById('bJalurVideo').value = '';
@@ -929,11 +958,11 @@ ${data.pertanyaan_kesimpulan}`;
             document.getElementById('builderPanel').style.display = 'none';
             muatAktivitas(kelasAktifId);
           } else {
-            alert('Gagal: ' + data.message);
+            feedback('builderStatus', 'Gagal: ' + data.message);
           }
         } catch (err) {
           console.error(err);
-          alert('Terjadi kesalahan koneksi ke server.');
+          feedback('builderStatus', 'Terjadi kesalahan koneksi ke server.');
         } finally {
           btn.disabled = false; btn.textContent = 'Publish Aktivitas';
         }

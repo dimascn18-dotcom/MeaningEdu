@@ -13,7 +13,12 @@
     }
     root.append(box);
   }
-  window.MeaningEduUI = Object.freeze({ showError });
+  function notice(root, message, kind = 'error') {
+    root.textContent = message;
+    root.className = `form-status ${kind === 'success' ? 'status-success' : 'status-error'}`;
+    root.setAttribute('role', kind === 'success' ? 'status' : 'alert');
+  }
+  window.MeaningEduUI = Object.freeze({ showError, notice });
   function enhance(root) {
     if (!(root instanceof Element)) return;
     const elements = [root, ...root.querySelectorAll('.aktivitas-chip,.kelas-item,.jalur-tab,.incl-btn,.loading-state,.empty-hint,.step-dot')];
@@ -38,7 +43,7 @@
       connection.className = 'connection-status'; connection.setAttribute('role','status');
       const update = () => { connection.textContent = navigator.onLine
         ? 'Online · AI dan PDF memerlukan koneksi internet.'
-        : 'Luring · Materi yang sudah terbuka dapat dibaca. Jurnal akhir dapat diantrekan; AI dan PDF tidak tersedia.'; };
+        : 'Luring · Aktivitas yang masih terbuka dapat dibaca dan direfleksikan dengan pertanyaan cadangan. Jurnal dapat diantrekan; AI dan PDF tidak tersedia.'; };
       main.prepend(connection); update();
       addEventListener('online', update); addEventListener('offline', update);
     }

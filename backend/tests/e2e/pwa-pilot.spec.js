@@ -28,12 +28,17 @@ test('real service worker keeps shell offline, queues a journal, then syncs once
     await page.goto('http://127.0.0.1:4175/workspace-siswa.html');
     await page.evaluate(()=>navigator.serviceWorker.ready);
     await expect.poll(()=>page.evaluate(()=>!!navigator.serviceWorker.controller)).toBe(true);
-    await page.locator('#jawabanAwal').fill('Saya melihat perubahan energi.');await page.locator('#btnKirimAwal').click();
-    await page.locator('#jawabanLanjutan').fill('Aliran air menyebabkan kincir berputar.');await page.locator('#btnLanjutTahap3').click();
-    await page.locator('#jawabanKesenjangan').fill('Saya belum memahami rugi energi.');
-    await page.locator('#jawabanStrategi').fill('Saya akan mengulang pengamatan.');
+    await expect(page.locator('#jurnalUnlocked')).toBeVisible();
     await context.setOffline(true);
     await expect(page.locator('.connection-status')).toContainText('Luring');
+    await page.locator('#jawabanAwal').fill('Saya melihat perubahan energi.');await page.locator('#btnKirimAwal').click();
+    await expect(page.locator('#sumberPertanyaan')).toHaveText('Pertanyaan cadangan');
+    await expect(page.locator('#teksPertanyaanAI')).toContainText('ingin kamu pahami');
+    await page.locator('#jawabanLanjutan').fill('Aliran air menyebabkan kincir berputar.');await page.locator('#btnLanjutTahap3').click();
+    await expect(page.locator('#tahap-3')).toBeVisible();
+    await expect(page.locator('#journalStatus')).toContainText('cadangan');
+    await page.locator('#jawabanKesenjangan').fill('Saya belum memahami rugi energi.');
+    await page.locator('#jawabanStrategi').fill('Saya akan mengulang pengamatan.');
     await Promise.all([
       page.waitForEvent('framenavigated'),
       page.locator('#btnSimpanJurnal').click()

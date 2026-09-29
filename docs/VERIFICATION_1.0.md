@@ -1,40 +1,21 @@
-# MeaningEdu 1.0 — Implementation verification
+# MeaningEdu 1.0 — Verifikasi kandidat release
 
-Tanggal: 28 September 2026. Baseline: `feat/meaningedu-03`, commit `9db58cfe74ba93cc4063de006c863cd10df37838`. Branch kerja: `feat/meaningedu-1-polish`.
+Tanggal audit: 29 September 2026. GitHub adalah sumber status commit dan CI; dokumen ini mencatat bukti pada SHA yang disebut, bukan sertifikasi kualitas pedagogis atau aksesibilitas.
 
-## Perubahan aktual
+## Baseline aktual
 
-Dashboard guru mengikuti kondisi, perhatian, interpretasi, tindakan, dan detail. Pembuat aktivitas serta materi ditempatkan setelah pemantauan/tindak lanjut. Workspace mendahulukan aktivitas, pilihan, materi, dan refleksi. Form auth, informasi pilot/privasi, state gagal/ulang, label, keyboard, contrast, responsive, dan shared visual rules dipoles. Pengurutan nama siswa diperbaiki, tabel dapat dioperasikan dengan keyboard, sesi kedaluwarsa diarahkan ke login, dan data akun lokal yang rusak ditangani.
-
-KaTeX tetap lokal dan aman; observer kini memproses subtree berubah, bukan seluruh halaman pada setiap mutasi. Cache service worker diperbarui menjadi `meaningedu-v8` untuk menyertakan aset UI. Backend produksi, API pedagogis, skema database, formula `MLI-v2.0-EW`, dan mekanisme keputusan rekomendasi tidak berubah. Dependency tambahan `@axe-core/playwright` hanya untuk pengujian.
-
-## Hasil
-
-| Pemeriksaan | Hasil dan batas bukti |
+| Jalur | Status |
 |---|---|
-| Baseline dan setiap kelompok perubahan | `npm test`: 32 PASS, 0 FAIL, 1 SKIP (test migrasi membutuhkan PostgreSQL). Diulang setelah dashboard, workspace, auth/landing, aksesibilitas/responsive, serta states/performa. |
-| Final unit/API lokal | 32 PASS, 0 FAIL, 1 SKIP tanpa PostgreSQL 16. Meliputi auth/authorization, PDF, antrean/deduplikasi, MLI dan pedagogical loop. |
-| CI PostgreSQL 16 | GitHub Actions run `36414985389`: 33 PASS, 0 FAIL, 0 SKIP; migrasi fresh dan legacy idempoten PASS. |
-| Final browser E2E | 12 PASS, 0 FAIL. Chromium 153, API Express nyata, database PostgreSQL portabel PGlite. PGlite dipakai hanya pada harness lokal sementara; tidak ditambahkan sebagai dependency aplikasi. |
-| Siklus pedagogis | Guru membuat aktivitas; siswa bergabung, memilih jalur, belajar, dan berefleksi; MLI terbentuk; guru berefleksi dan mencatat intervensi; aktivitas kedua dibandingkan; rekomendasi diterima/diabaikan tanpa paksaan. |
-| Math/PDF | Rumus inline/display dinamis, MathML, input LaTeX mentah, formula tidak valid, serta penolakan tautan math berbahaya lulus. Upload PDF, buka oleh anggota, penolakan nonanggota lulus. |
-| PWA browser nyata | Shell reload luring, antrean jurnal IndexedDB tetap ada, sinkronisasi setelah online menghasilkan satu jurnal; cache tidak memuat API/PDF privat dan mencakup stylesheet baru. |
-| UI/accessibility | Lima halaman utama tanpa pelanggaran axe pada tags WCAG A/AA yang diperiksa; form guru yang dibuka juga lulus. Viewport 360/390/430/768/1024/1440 px tanpa overflow halaman. Keyboard skip link, sorting, role, sesi, error/retry, dan pembesaran teks 200% lulus. |
-| Inspeksi visual | Screenshot ponsel dashboard/workspace diperiksa; jarak navbar terhadap konten, contrast, dan scroll tabel dibenahi. |
-| Dependency produksi | `npm audit --omit=dev`: 0 vulnerabilities. |
-| Secret scan | Gitleaks di CI: PASS. |
-| Konsistensi source | JavaScript inline dikompilasi; `git diff --check` bersih. |
+| `main` dan tag prerelease `v1.0.0-pilot` | `65577e61fec85fab868a8277847758177ba45be9`; CI push run #18 sukses. Tag belum dipindahkan. |
+| PR #7 sebelum hardening final | Terbuka dan mergeable, head `7829f487c5d80e8876baa80c2905df18f7bcf775`; CI PR run #24 sukses: 40/40 backend pada PostgreSQL 16, 22/22 E2E Chromium, audit dependensi dan Gitleaks sukses. |
+| Kandidat hardening final | Commit kode `64a6f0e0612fa8446624cb38806d561ee08202bc`; [CI PR run #25](https://github.com/dimascn18-dotcom/MeaningEdu/actions/runs/36533736068) sukses. Bila ada commit setelahnya, periksa CI pada head PR terbaru sebelum merge. |
 
-AI dan Vercel Blob pada E2E memakai double deterministik. PASS browser tidak membuktikan ketersediaan Gemini/Blob/Neon atau latensi produksi. Audit axe tidak menggantikan pembaca layar/manual. Test migrasi fresh/legacy PostgreSQL 16 belum dijalankan ulang pada perubahan ini; migrasi yang ada berhasil digunakan saat menyiapkan database portable E2E.
+## Perilaku yang diperiksa
 
-## Status penyerahan dan gate tersisa
+Regresi unit/API dan browser memeriksa auth/peran dan persetujuan akun baru, approval guru, ownership/enrollment kelas dan PDF, signed URL, materi dan KaTeX, pilihan jalur eksplisit, jurnal dan deduplikasi, formula MLI `MLI-v2.0-EW` dan data hilang, ambang cakupan 70%, evidence, teacher reflection, intervensi, pengamatan lanjut, serta keputusan rekomendasi siswa. Browser memakai API Express dan database uji, dengan Gemini dan Blob tiruan. Tes PWA memakai service worker nyata pada origin uji, cache shell, refleksi saat AI/jaringan gagal, draf dan antrean jurnal yang sinkron satu kali. Axe, keyboard, viewport, dan pembesaran teks diuji secara otomatis; hasil tersebut tidak menggantikan pembaca layar/perangkat nyata.
 
-Implementasi dan dokumentasi dikirim ke [PR #6](https://github.com/dimascn18-dotcom/MeaningEdu/pull/6), berbasis `feat/meaningedu-03`. Setelah pengguna memberi izin pengiriman, dua commit kode/dokumentasi direkonstruksi melalui koneksi GitHub; kedua pohon file diverifikasi identik dengan commit lokal yang diuji. CI GitHub Actions run `36414985389` selesai sukses. PR masih terbuka; belum ada merge atau deployment produksi.
+Kandidat sekarang menyediakan pilihan wilayah simulasi yang tidak mengklaim sekolah sungguhan dan mengubah Inquiry: persamaan prasyarat dapat diberikan, sedangkan hubungan yang menjadi target penemuan disimpan untuk penyelidikan siswa. Pertanyaan pemantik guru diteruskan ke generator. Pemeriksaan otomatis hanya menguji instruksi dan alur; guru tetap harus memeriksa kebocoran semantik, ketepatan konsep, dan keamanan eksperimen. Form persetujuan dewasa mencatat versi/waktu pada akun baru melalui migration `0011_pilot_consent.sql`. Tidak ada migration tambahan; akun lama tetap tanpa consent dan tidak dipakai pada database pilot baru.
 
-Konsolidasikan rantai PR 02→03→1.0 sebelum deployment target. Rehearsal provider produksi, uji perangkat nyata/pembaca layar, persetujuan peserta, serta masa simpan data tetap menjadi gate pilot. Ikuti `PILOT_RUNBOOK.md`.
+## Hasil kandidat dan batasnya
 
-## Koreksi akhir sebelum konsolidasi release
-
-Temuan berikut diperbaiki: daftar siswa prioritas kini dirender juga saat tren kosong; tabel MLI berurut skor rendah lebih dahulu, data tidak lengkap tetap muncul setelah skor yang tersedia; tren memiliki tabel alternatif dengan cakupan per minggu; keempat textarea dan empat pilihan survey disimpan lokal per akun/aktivitas dan tahap AI dipulihkan setelah reload; materi tambahan berada setelah refleksi; ikon 192/512 tersedia dan ikut precache `meaningedu-v9`. Formulir informasi/consent pilot dibuat di `PILOT_PARTICIPANT_INFO.md` tetapi kolom keputusan pengelola belum diisi.
-
-Regresi lokal tambahan: tes triage dan axe pada tabel tren, pemulihan draf tahap 1/2/3, resolusi ikon manifest dan cache service worker lulus; `npm test`: 32 lulus, 1 tes migrasi di-skip tanpa PostgreSQL. Full browser suite dijalankan kembali untuk 15 skenario; hasil final dan CI PostgreSQL 16 harus dicatat pada PR sebelum merge. Font OpenDyslexic masih tergantung CDN, sehingga mode font khusus belum dijamin pada sesi offline pertama. Audit pembaca layar/perangkat nyata, Web Vitals deployment, provider produksi, serta persetujuan peserta tetap berstatus belum diuji/belum final; jangan menafsirkannya sebagai PASS pilot.
+Suite lokal pada perubahan kode: 40 lulus, 0 gagal, **1 belum dijalankan** (migrasi PostgreSQL tanpa `TEST_DATABASE_URL`). CI #25 pada commit kode: 41/41 backend, 0 skip, mencakup migrasi fresh/legacy/idempoten pada PostgreSQL 16; 23/23 E2E Chromium; audit dependensi 0 kerentanan; Gitleaks lulus. Verifikasi provider Gemini, Blob, database Neon pilot, dan CORS deployment belum dilakukan. NVDA/TalkBack, suara Indonesia, PDF/diagram nyata, Android kelas menengah, jaringan lapangan, serta Web Vitals deployment berstatus **MANUAL REQUIRED / OPEN**. Izin sekolah dan keputusan consent wali untuk siswa 12–18 tahun juga **OPEN**. Lihat `PILOT_RUNBOOK.md` dan `RELEASE_REHEARSAL_CHECKLIST.md` untuk langkah rehearsal dan batas simulasi dewasa.

@@ -34,6 +34,8 @@ async function verifyMeaningEdu01Schema(client) {
     WHERE table_schema = 'public'
       AND (table_name, column_name) IN (
         ('users', 'status_akun'),
+        ('users', 'consent_policy_version'),
+        ('users', 'consented_at'),
         ('jurnal_refleksi', 'client_submission_id'),
         ('jurnal_refleksi', 'mli_a1'),
         ('jurnal_refleksi', 'jawaban_kesenjangan'),
@@ -48,7 +50,7 @@ async function verifyMeaningEdu01Schema(client) {
         ('materi_kelas', 'blob_pathname')
       )
   `);
-  assert.equal(columns.rowCount, 13);
+  assert.equal(columns.rowCount, 15);
 
   const indexes = await client.query(`
     SELECT indexname

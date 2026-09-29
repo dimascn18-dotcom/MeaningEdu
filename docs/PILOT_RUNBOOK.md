@@ -2,14 +2,17 @@
 
 ## Tujuan dan batas
 
-Pilot menguji apakah guru dan siswa dapat menyelesaikan satu siklus pembelajaran dengan lancar. Tahap 1.0 memoles antarmuka MeaningEdu 03; tidak menambah konstruk, formula, API pedagogis, atau migrasi. MLI `MLI-v2.0-EW` tetap memakai bobot setara 20% per dimensi, missing data tetap `null`, dan rata-rata kelas memerlukan cakupan minimal 70%. Bobot ini keputusan prototype, bukan validasi psikometrik. Perubahan MLI hanya observasi, bukan bukti kausal keberhasilan intervensi.
+Pilot menguji apakah guru dan siswa dapat menyelesaikan satu siklus pembelajaran dengan lancar. Tahap 1.0 memoles antarmuka MeaningEdu 03 tanpa mengubah konstruk, formula, atau API pedagogis. Kandidat setelah prerelease menambah migration catatan persetujuan `0011_pilot_consent.sql`. MLI `MLI-v2.0-EW` tetap memakai bobot setara 20% per dimensi, missing data tetap `null`, dan rata-rata kelas memerlukan cakupan minimal 70%. Bobot ini keputusan prototype, bukan validasi psikometrik. Perubahan MLI hanya observasi, bukan bukti kausal keberhasilan intervensi.
+
+Kegiatan saat ini dibatasi sebagai simulasi internal mahasiswa/calon guru dewasa, dengan Dimas Cahya Nugraha sebagai pengelola proyek mahasiswa dan kontak dimas.cn18@upi.edu. UPI tidak dinyatakan sebagai penyelenggara. Periode rencana Oktober–November 2026, dua aktivitas dalam dua minggu. Rencana satu guru dan sekitar 30 siswa usia 12–18 tahun belum dapat dijalankan karena izin sekolah/institusi dan mekanisme persetujuan wali belum diputuskan. Gunakan [informasi peserta](PILOT_PARTICIPANT_INFO.md) yang sudah diisi untuk simulasi; jangan mengundang siswa di bawah 18 tahun melalui checkbox pendaftaran dewasa.
 
 ## Sebelum pilot
 
-1. Pengelola memastikan versi 02, 03, dan polishing 1.0 telah dikonsolidasikan sebelum deployment. Branch polishing berangkat dari `9db58cfe74ba93cc4063de006c863cd10df37838`; `main` yang lama tidak cukup.
+1. Gunakan `main` yang sudah memuat rantai 02, 03, dan polishing 1.0. Tag `v1.0.0-pilot` pada `65577e61fec85fab868a8277847758177ba45be9` adalah prerelease; catat SHA persis dari kandidat deployment beserta hasil CI terbaru, termasuk perubahan setelah tag.
 2. Jalankan CI dengan PostgreSQL 16: unit/API, migrasi fresh dan legacy, browser E2E, audit dependency, dan secret scan. Gunakan database uji terpisah; fixture E2E menghapus data `users` beserta data terkait.
-3. Verifikasi environment Vercel/Neon/Blob/Gemini dan origin CORS. Jalankan migrasi yang sudah tersedia, buat admin, dan setujui akun guru. Tidak ada migrasi baru khusus polishing.
-4. Pengelola mengisi dan menyetujui [informasi peserta dan consent](PILOT_PARTICIPANT_INFO.md): penanggung jawab, kontak bantuan, masa simpan, prosedur berhenti dan penghapusan, serta persetujuan peserta/wali bila perlu. Jelaskan pengiriman teks ke penyedia AI. Gunakan materi tanpa data pribadi sensitif dan akun uji terlebih dahulu.
+3. Gunakan database Neon pilot **baru dan kosong**, terpisah dari development, production lama, dan database CI. Jangan impor akun atau data lama. Verifikasi `SELECT COUNT(*) FROM users` bernilai 0 sebelum provisioning; jika tabel belum ada, jalankan migrasi pada database baru lalu ulangi pemeriksaan. Bila ada akun lama, hentikan pembukaan pilot dan pakai database baru; jangan menetapkan consent akun lama secara otomatis. Beri kredensial database ini hanya pada backend target pilot, verifikasi identitas koneksi, lalu jalankan semua migrasi termasuk `0011_pilot_consent.sql`, buat admin, dan setujui akun guru. Jangan pernah menjalankan fixture E2E yang menghapus `users` pada database pilot. Catat SHA, backup, hasil migrasi, dan origin CORS serta konfigurasi Vercel/Neon/Blob/Gemini.
+4. Pengelola memeriksa kembali [informasi peserta dan consent](PILOT_PARTICIPANT_INFO.md) sebelum membuka simulasi internal. Checkbox pendaftaran dan timestamp hanya mencakup akun peserta baru yang menyatakan dewasa; admin dibuat melalui provisioning. Jika akun lama harus dipakai pada masa depan, buat alur persetujuan ulang sebelum mengikutkannya. Catat tanggal akhir kegiatan dan tenggat pembersihan database maksimal enam bulan setelahnya. Gunakan materi tanpa data pribadi sensitif dan akun uji terlebih dahulu. Peserta simulasi memilih wilayah netral tanpa mengarang sekolah.
+   Jika informasi yang disetujui berubah secara material, perbarui versi `pilot-1.0-2026-09-29` di halaman, frontend, dan backend; catatan lama tidak otomatis menyetujui versi baru. Rencanakan juga pembersihan PDF pilot di Blob, data lokal perangkat, dan pemeriksaan cakupan backup sesuai kebijakan penyedia; catat pelaksanaan dan keterbatasan yang tidak dikendalikan aplikasi.
 5. Guru menyiapkan satu kelas, dua aktivitas berurutan, minimal dua jalur per aktivitas, dan satu PDF maksimal 10 MB. Sertakan alternatif teks untuk diagram atau PDF hasil pemindaian yang sulit dibaca pembaca layar.
 6. Latihan di desktop dan ponsel nyata; cek keyboard dan pembaca layar (misalnya NVDA/TalkBack), suara bahasa Indonesia, zoom 200%, jaringan lambat, dan koneksi terputus. Automated axe tidak membuktikan kepatuhan WCAG penuh.
 
@@ -26,16 +29,18 @@ Catat waktu penyelesaian, langkah yang membingungkan, kegagalan simpan, dan kome
 | Daftar kelas/aktivitas gagal | Gunakan **Coba lagi** pada panel. Isian di panel lain tidak dihapus. |
 | Login gagal | Periksa pesan di form dan coba kembali. Sesi berakhir memerlukan login ulang. |
 | Akun guru belum aktif | Admin menyetujui akun; jangan mengganti peran di browser. |
-| AI tidak tersedia | Pertahankan jawaban yang sudah ditulis. Coba kembali ketika layanan pulih; MLI tertunda bukan nol. |
+| AI tidak tersedia | Siswa dengan aktivitas yang masih terbuka dapat menjawab pertanyaan refleksi cadangan yang diberi label. Guru mengisi materi dan eksperimen manual bila generator gagal. Analisis MLI yang tertunda bukan skor nol. |
 | PDF gagal | Periksa internet dan keanggotaan kelas. Jangan membagikan URL sementara sebagai tautan permanen. |
 | Koneksi putus pada jurnal akhir | Simpan jurnal akhir untuk mengantrekannya. Sambungkan kembali dan tunggu pemberitahuan sinkronisasi. Jangan hapus data browser. |
 | Antrean gagal karena sesi habis | Masuk kembali dengan akun yang sama. Antrean tidak dipindahkan ke akun lain. |
 | Antrean ditolak server | Pertahankan perangkat/data browser dan hubungi pengelola; jangan mengklaim jurnal telah terkirim. |
-| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache aplikasi versi 1.0 adalah `meaningedu-v9`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
+| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache kandidat adalah `meaningedu-v12`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
 
-Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest sudah dicache. Konten API privat tidak dicache. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI, aktivitas baru, video eksternal, PDF, dan unduhan pertama font disleksia CDN membutuhkan jaringan. Draf form kini disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
+Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest dan font OpenDyslexic lokal masuk cache shell. Konten API privat tidak dicache. Aktivitas yang masih terbuka dapat diselesaikan dengan pertanyaan refleksi cadangan saat koneksi putus, dan jurnal akhir dapat diantrekan. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI langsung, aktivitas baru, video eksternal, dan PDF membutuhkan jaringan. Draf form disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
 
 ## Bukti manual dan provider sebelum mulai
+
+Gunakan [checklist rehearsal langkah demi langkah](RELEASE_REHEARSAL_CHECKLIST.md) pada deployment kandidat dan simpan hasilnya bersama SHA.
 
 Isi perangkat/browser, tanggal, penanggung jawab, hasil, dan tautan bukti untuk setiap baris. **Belum diuji** tidak boleh ditandai lulus berdasarkan axe/CI.
 

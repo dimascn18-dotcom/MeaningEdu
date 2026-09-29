@@ -58,7 +58,7 @@ gemini.GoogleGenerativeAI = class FakeGoogleGenerativeAI {
         } else {
           content = JSON.stringify({
             judul: 'Energi dan Massa',
-            konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\n🧪 Saran Eksperimen Sederhana:\n1. Bandingkan perubahan energi pada benda di sekitar.'
+            konten: 'AI menjelaskan energi relativistik dengan persamaan \\(E = mc^2\\).\n\nSaran eksperimen sederhana:\n1. Amati benda yang bergerak.\n2. Catat dan bandingkan hasil pengamatan.'
           });
         }
         return {
@@ -82,10 +82,14 @@ async function resetFixture({ enrolled = true } = {}) {
     VALUES
       (1, 'Guru E2E', 'guru-e2e@example.test', 'unused', 'guru', 'aktif'),
       (2, 'Siswa Enrolled', 'siswa-e2e@example.test', 'unused', 'siswa', 'aktif'),
-      (3, 'Siswa Non Enrolled', 'outsider-e2e@example.test', 'unused', 'siswa', 'aktif');
+      (3, 'Siswa Non Enrolled', 'outsider-e2e@example.test', 'unused', 'siswa', 'aktif'),
+      (4, 'Admin E2E', 'admin-e2e@example.test', 'unused', 'admin', 'aktif'),
+      (5, 'Guru Menunggu', 'pending-e2e@example.test', 'unused', 'guru', 'pending');
     INSERT INTO kelas (id, guru_id, nama_kelas, topik_fisika, kode_kelas)
     VALUES (1, 1, 'Fisika E2E', 'Energi', 'E2E00001');
   `);
+  // Explicit fixture IDs do not advance the users serial sequence.
+  await pool.query("SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users))");
   if (enrolled) await pool.query('INSERT INTO kelas_siswa (kelas_id, siswa_id) VALUES (1, 2)');
 }
 

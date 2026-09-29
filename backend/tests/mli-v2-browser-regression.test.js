@@ -29,12 +29,14 @@ test('membuka aktivitas tidak mengirim pilihan jalur; klik tab mengirim satu pil
   const document = {
     getElementById(id) { return elements[id]; },
     createElement() {
-      return { className: '', textContent: '', classList: { remove() {}, add() {} },
+      return { className: '', textContent: '', attributes: {},
+        setAttribute(name, value) { this.attributes[name] = value; },
+        classList: { remove() {}, add() {} },
         addEventListener(_event, handler) { this.click = handler; } };
     }
   };
   const script = section('function renderJalurTabs(akt) {', '// ================= 4. AI SIMPLIFIER TOGGLE');
-  const context = { document, aktivitasTerpilih: { id: 8 }, fetchWithAuth: async (...args) => {
+  const context = { document, aktivitasTerpilih: { id: 8 }, berhentiMembaca() {}, feedback() {}, fetchWithAuth: async (...args) => {
     requests.push(args);
     return { ok: false };
   }, console };
@@ -45,10 +47,13 @@ test('membuka aktivitas tidak mengirim pilihan jalur; klik tab mengirim satu pil
   ] });
   assert.equal(elements.materiContent.textContent, 'Bahan awal');
   assert.equal(requests.length, 0, 'Tab pertama dibuka otomatis tanpa catatan pilihan.');
+  assert.equal(tabs[0].attributes['aria-pressed'], 'true');
   tabs[1].click();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(requests.length, 1);
   assert.equal(JSON.parse(requests[0][1].body).jalur_id, 12);
+  assert.equal(tabs[1].attributes['aria-pressed'], 'true');
+  assert.equal(tabs[0].attributes['aria-pressed'], 'false');
 });
 
 test('pengiriman jurnal memisahkan jawaban kognitif dan metakognitif', async () => {

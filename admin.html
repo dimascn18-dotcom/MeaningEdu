@@ -16,7 +16,10 @@
     .request-actions button { border:0; border-radius:999px; padding:9px 14px; cursor:pointer; font-weight:600; }
     .approve { background:var(--forest); color:white; }
     .reject { background:#f3d9d9; color:#7a2020; }
-    .empty { background:white; border-radius:14px; padding:28px; text-align:center; color:var(--text-lt); }
+    .empty { background:white; border-radius:14px; padding:28px; text-align:center; color:var(--text-md); }
+    .admin-status { min-height:1.5em; margin:0 0 16px; color:var(--forest); }
+    .admin-status[data-kind="error"] { color:#853515; }
+    .request-actions button:disabled { opacity:.55; cursor:wait; }
     @media(max-width:640px){ .request-card,.admin-head{align-items:flex-start;flex-direction:column}.request-actions{width:100%}.request-actions button{flex:1} }
   </style>
   <link rel="stylesheet" href="polish.css" />
@@ -29,19 +32,26 @@
       <div><p class="section-eyebrow">Administrasi Akun</p><h1>Persetujuan Guru</h1></div>
       <button class="btn-outline" id="logoutAdmin">Keluar</button>
     </div>
-    <div id="requestList" class="request-list"><div class="empty">Memuat permohonan…</div></div>
+    <p id="adminStatus" class="admin-status" role="status" tabindex="-1" aria-live="polite"></p>
+    <div id="requestList" class="request-list" aria-label="Permohonan akun guru"><div class="empty" role="status">Memuat permohonan…</div></div>
   </main>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script>
     (() => {
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
-      if (!user || user.peran !== 'admin') {
+      const user = currentUser();
+      if (!user || user.peran !== 'admin' || !localStorage.getItem('token')) {
         window.location.href = 'login.html';
         return;
       }
 
       const list = document.getElementById('requestList');
+      const status = document.getElementById('adminStatus');
+      function setStatus(message, kind = 'info') {
+        status.textContent = message;
+        status.dataset.kind = kind;
+        if (kind === 'error') status.focus();
+      }
       document.getElementById('logoutAdmin').addEventListener('click', () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -49,49 +59,61 @@
       });
 
       async function muatPermohonan() {
-        const response = await fetchWithAuth('/admin/teacher-requests');
-        if (!response) return;
-        const data = await response.json();
-        if (!response.ok) {
-          list.innerHTML = `<div class="empty">${data.message || 'Gagal memuat permohonan.'}</div>`;
-          return;
-        }
-        if (data.length === 0) {
-          list.innerHTML = '<div class="empty">Tidak ada permohonan guru yang menunggu.</div>';
-          return;
-        }
-        list.innerHTML = data.map(item => `
+        list.innerHTML = '<div class="empty" role="status">Memuat permohonan…</div>';
+        try {
+          const response = await fetchWithAuth('/admin/teacher-requests');
+          if (!response) return;
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Gagal memuat permohonan.');
+          if (!Array.isArray(data)) throw new Error('Respons permohonan tidak sesuai.');
+          if (data.length === 0) {
+            list.innerHTML = '<div class="empty">Tidak ada permohonan guru yang menunggu.</div>';
+            return true;
+          }
+          list.innerHTML = data.map(item => `
           <article class="request-card">
             <div><strong>${escapeHtml(item.nama)}</strong><p>${escapeHtml(item.email)}</p><p>${escapeHtml(item.wilayah_sekolah || 'Wilayah belum diisi')}</p></div>
             <div class="request-actions">
-              <button class="approve" data-id="${item.id}" data-action="setujui">Setujui</button>
-              <button class="reject" data-id="${item.id}" data-action="tolak">Tolak</button>
+              <button type="button" class="approve" data-id="${Number(item.id)}" data-action="setujui" aria-label="Setujui ${escapeHtml(item.nama)}">Setujui</button>
+              <button type="button" class="reject" data-id="${Number(item.id)}" data-action="tolak" aria-label="Tolak ${escapeHtml(item.nama)}">Tolak</button>
             </div>
           </article>`).join('');
+          return true;
+        } catch (error) {
+          console.error(error);
+          MeaningEduUI.showError(list, 'Permohonan belum dapat dimuat. Periksa koneksi lalu coba lagi.', muatPermohonan);
+          return false;
+        }
       }
 
       function escapeHtml(value) {
         const div = document.createElement('div');
         div.textContent = String(value);
-        return div.innerHTML;
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
 
       list.addEventListener('click', async event => {
         const button = event.target.closest('button[data-action]');
         if (!button) return;
-        button.disabled = true;
-        const response = await fetchWithAuth(`/admin/teacher-requests/${button.dataset.id}`, {
-          method: 'PATCH', body: JSON.stringify({ keputusan: button.dataset.action })
-        });
-        const data = await response.json();
-        alert(data.message || (response.ok ? 'Permohonan diperbarui.' : 'Gagal memperbarui permohonan.'));
-        if (response.ok) await muatPermohonan(); else button.disabled = false;
+        const card = button.closest('.request-card');
+        card.querySelectorAll('button').forEach(control => { control.disabled = true; });
+        setStatus('Menyimpan keputusan…');
+        try {
+          const response = await fetchWithAuth(`/admin/teacher-requests/${button.dataset.id}`, {
+            method: 'PATCH', body: JSON.stringify({ keputusan: button.dataset.action })
+          });
+          if (!response) return;
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Gagal memperbarui permohonan.');
+          const refreshed = await muatPermohonan();
+          setStatus(refreshed ? (data.message || 'Permohonan diperbarui.') : 'Keputusan tersimpan, tetapi daftar belum dapat dimuat. Coba lagi.', refreshed ? 'info' : 'error');
+        } catch (error) {
+          setStatus(error.message || 'Koneksi gagal. Coba lagi.', 'error');
+          card.querySelectorAll('button').forEach(control => { control.disabled = false; });
+        }
       });
 
-      muatPermohonan().catch(error => {
-        console.error(error);
-        list.innerHTML = '<div class="empty">Tidak dapat terhubung ke server.</div>';
-      });
+      muatPermohonan();
     })();
   </script>
 </body>
