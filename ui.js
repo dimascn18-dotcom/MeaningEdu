@@ -43,7 +43,7 @@
       connection.className = 'connection-status'; connection.setAttribute('role','status');
       const update = () => { connection.textContent = navigator.onLine
         ? 'Online · AI dan PDF memerlukan koneksi internet.'
-        : 'Luring · Materi yang sudah terbuka dapat dibaca. Jurnal akhir dapat diantrekan; AI dan PDF tidak tersedia.'; };
+        : 'Luring · Aktivitas yang masih terbuka dapat dibaca dan direfleksikan dengan pertanyaan cadangan. Jurnal dapat diantrekan; AI dan PDF tidak tersedia.'; };
       main.prepend(connection); update();
       addEventListener('online', update); addEventListener('offline', update);
     }

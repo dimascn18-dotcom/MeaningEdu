@@ -192,6 +192,91 @@ test('expanded teacher forms, keyboard sorting, and text zoom remain usable', as
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
+test('student choices and reading controls expose their state to keyboard and screen readers', async ({page}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  await loginFixture(page, 'siswa');
+  await page.goto('/workspace-siswa.html');
+  await expect(page.locator('#jurnalUnlocked')).toBeVisible();
+  await expect(page.locator('#daftarAktivitas .aktivitas-chip').first()).toHaveAttribute('aria-pressed', 'true');
+  const paths = page.locator('#jalurTabsContainer .jalur-tab');
+  await expect(paths).toHaveCount(2);
+  await expect(paths.first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(paths.nth(1)).toHaveAttribute('aria-pressed', 'false');
+  await paths.nth(1).focus();
+  await page.keyboard.press('Enter');
+  await expect(paths.nth(1)).toHaveAttribute('aria-pressed', 'true');
+  await expect(paths.first()).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#learningStatus')).toContainText('tercatat');
+
+  const dyslexia = page.locator('#btnDisleksia');
+  await dyslexia.focus();
+  await page.keyboard.press('Space');
+  await expect(dyslexia).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('body')).toHaveClass(/mode-disleksia/);
+  await expect.poll(() => page.locator('#materiContent').evaluate(el => getComputedStyle(el).fontFamily)).toContain('OpenDyslexic');
+
+  await page.locator('#btnFontBesar').click();
+  await page.locator('#btnFontBesar').click();
+  await expect(page.locator('#learningStatus')).toContainText('131 persen');
+  expect(await page.evaluate(() => document.documentElement.style.fontSize)).toBe('21px');
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await dyslexia.click();
+  await expect(dyslexia).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('reading aloud can be stopped and cancels when the learning path changes', async ({page}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  await loginFixture(page, 'siswa');
+  await page.addInitScript(() => {
+    window.__speechState = { utterances: [], cancelCount: 0 };
+    window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      getVoices: () => [{lang:'id-ID',name:'Suara uji'}],
+      speak: utter => window.__speechState.utterances.push(utter),
+      cancel: () => { window.__speechState.cancelCount++; }
+    } });
+  });
+  await page.goto('/workspace-siswa.html');
+  await expect(page.locator('#jurnalUnlocked')).toBeVisible();
+  const speech = page.locator('#btnTTS');
+  await speech.click();
+  await expect(speech).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => ({
+    text: window.__speechState.utterances[0].text,
+    lang: window.__speechState.utterances[0].lang,
+    voice: window.__speechState.utterances[0].voice.lang
+  }))).toEqual({text: 'Energi \\(E=mc^2\\) dan \\[F=ma\\].',lang:'id-ID',voice:'id-ID'});
+  const count = await page.evaluate(() => window.__speechState.cancelCount);
+  await page.locator('#jalurTabsContainer .jalur-tab').nth(1).click();
+  await expect(speech).toHaveAttribute('aria-pressed', 'false');
+  expect(await page.evaluate(() => window.__speechState.cancelCount)).toBeGreaterThan(count);
+  await speech.click();
+  await expect(speech).toHaveAttribute('aria-pressed', 'true');
+  await speech.click();
+  await expect(speech).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('reflection continues with clearly labeled fallback when AI requests lose connection', async ({page}) => {
+  const headers = await loginFixture(page);
+  await seedActivity(page, headers);
+  await loginFixture(page, 'siswa');
+  await page.route('**/ai/socratic', route => route.abort('failed'));
+  await page.route('**/ai/metakognisi-scaffold', route => route.abort('failed'));
+  await page.goto('/workspace-siswa.html');
+  await expect(page.locator('#jurnalUnlocked')).toBeVisible();
+  await page.locator('#jawabanAwal').fill('Saya mengamati energi.');
+  await page.locator('#btnKirimAwal').click();
+  await expect(page.locator('#sumberPertanyaan')).toHaveText('Pertanyaan cadangan');
+  await expect(page.locator('#draftStatus')).toContainText('tersimpan');
+  await page.locator('#jawabanLanjutan').fill('Saya membandingkan pengamatan.');
+  await page.locator('#btnLanjutTahap3').click();
+  await expect(page.locator('#tahap-3')).toBeVisible();
+  await expect(page.locator('#journalStatus')).toContainText('cadangan');
+});
+
 test('teacher triage shows priority pupils and accessible weekly data', async ({page}) => {
   const headers = await loginFixture(page);
   await seedActivity(page, headers);

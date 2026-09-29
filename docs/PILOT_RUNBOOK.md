@@ -29,14 +29,14 @@ Catat waktu penyelesaian, langkah yang membingungkan, kegagalan simpan, dan kome
 | Daftar kelas/aktivitas gagal | Gunakan **Coba lagi** pada panel. Isian di panel lain tidak dihapus. |
 | Login gagal | Periksa pesan di form dan coba kembali. Sesi berakhir memerlukan login ulang. |
 | Akun guru belum aktif | Admin menyetujui akun; jangan mengganti peran di browser. |
-| AI tidak tersedia | Pertahankan jawaban yang sudah ditulis. Coba kembali ketika layanan pulih; MLI tertunda bukan nol. |
+| AI tidak tersedia | Siswa dengan aktivitas yang masih terbuka dapat menjawab pertanyaan refleksi cadangan yang diberi label. Guru mengisi materi dan eksperimen manual bila generator gagal. Analisis MLI yang tertunda bukan skor nol. |
 | PDF gagal | Periksa internet dan keanggotaan kelas. Jangan membagikan URL sementara sebagai tautan permanen. |
 | Koneksi putus pada jurnal akhir | Simpan jurnal akhir untuk mengantrekannya. Sambungkan kembali dan tunggu pemberitahuan sinkronisasi. Jangan hapus data browser. |
 | Antrean gagal karena sesi habis | Masuk kembali dengan akun yang sama. Antrean tidak dipindahkan ke akun lain. |
 | Antrean ditolak server | Pertahankan perangkat/data browser dan hubungi pengelola; jangan mengklaim jurnal telah terkirim. |
-| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache kandidat perbaikan UI adalah `meaningedu-v10`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
+| UI versi lama | Tutup lalu buka kembali halaman setelah service worker diperbarui. Cache kandidat perbaikan UI adalah `meaningedu-v11`. Jangan membersihkan penyimpanan sebelum antrean terkirim. |
 
-Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest dan font OpenDyslexic lokal masuk cache shell. Konten API privat tidak dicache. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI, aktivitas baru, video eksternal, dan PDF membutuhkan jaringan. Draf form kini disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
+Halaman aplikasi yang pernah dimuat dapat dibuka luring. Ikon manifest dan font OpenDyslexic lokal masuk cache shell. Konten API privat tidak dicache. Aktivitas yang masih terbuka dapat diselesaikan dengan pertanyaan refleksi cadangan saat koneksi putus, dan jurnal akhir dapat diantrekan. Setelah reload luring, daftar aktivitas/kelas tidak dijamin tersedia; sambungkan ulang agar aktivitas dapat dipilih dan draf lokal dipulihkan. Login, AI langsung, aktivitas baru, video eksternal, dan PDF membutuhkan jaringan. Draf form disimpan di perangkat per akun dan aktivitas saat mengetik atau memilih jawaban; jangan bersihkan data situs sebelum jurnal terkirim dan draf yang diperlukan disalin.
 
 ## Bukti manual dan provider sebelum mulai
 
